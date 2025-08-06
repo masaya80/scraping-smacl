@@ -1,0 +1,69 @@
+2025-08-06 15:23:11,836 - data.csv_extractor - INFO - 今日の日付のCSVファイルを発見: downloads/受注伝票_20250806144337.csv
+2025-08-06 15:23:11,836 - data.csv_extractor - INFO - CSV抽出開始: downloads/受注伝票_20250806144337.csv
+2025-08-06 15:23:11,867 - data.csv_extractor - INFO - CSV抽出完了: 19 品目（ユニーク）を抽出
+2025-08-06 15:23:21,029 - notification.line_bot - WARNING - LINE Bot設定が不完全です。通知機能は無効になります。
+2025-08-06 15:23:21,029 - __main__ - INFO - === 納品リスト処理システム開始 ===
+2025-08-06 15:23:21,029 - __main__ - INFO - フェーズ2: CSVデータ抽出処理開始
+2025-08-06 15:23:21,029 - data.csv_extractor - INFO - 今日の日付のCSVファイルを発見: /Users/masaya/project/CP_02_IPLoT/toichi/scraping-smacl/downloads/受注伝票_20250806144337.csv
+2025-08-06 15:23:21,029 - data.csv_extractor - INFO - CSV抽出開始: /Users/masaya/project/CP_02_IPLoT/toichi/scraping-smacl/downloads/受注伝票_20250806144337.csv
+2025-08-06 15:23:21,054 - data.csv_extractor - INFO - CSV抽出完了: 19 品目（ユニーク）を抽出
+2025-08-06 15:23:21,054 - __main__ - INFO - 合計 19 件のデータを抽出しました
+2025-08-06 15:23:21,055 - __main__ - INFO - フェーズ3: マスタ付け合わせ処理開始
+2025-08-06 15:23:21,055 - data.excel_processor - INFO - マスタ付け合わせ処理開始
+2025-08-06 15:23:21,055 - data.excel_processor - INFO - マスタファイル読み込み開始: /Users/masaya/project/CP_02_IPLoT/toichi/scraping-smacl/docs/角上魚類　配送依頼・出庫依頼.xlsx
+2025-08-06 15:23:21,125 - data.excel_processor - INFO - マスタシートのカラム: ['角上魚類商品コード', '東市商品コード', '倉庫名', 'グループコード', '担当者', 'line', '荷印', '商品名', '入出庫_入荷規格', '入出庫_単位', '入出庫_重量/k', '入出庫_備考', 'Toms_入数', 'Toms_単位', 'Toms_売価', 'Toms_備考']
+2025-08-06 15:23:21,126 - data.excel_processor - INFO - マスタデータ読み込み完了: 18 件
+2025-08-06 15:23:21,126 - data.excel_processor - ERROR - マスタ付け合わせエラー: 'OrderItem' object has no attribute 'items'
+2025-08-06 15:23:21,126 - __main__ - INFO - エラーはありませんでした
+2025-08-06 15:23:21,126 - __main__ - INFO - === 処理完了 (処理時間: 0.1秒) ===
+2025-08-06 15:24:32,287 - notification.line_bot - WARNING - LINE Bot設定が不完全です。通知機能は無効になります。
+2025-08-06 15:24:32,287 - __main__ - INFO - === 納品リスト処理システム開始 ===
+2025-08-06 15:24:32,287 - __main__ - INFO - フェーズ2: CSVデータ抽出処理開始
+2025-08-06 15:24:32,288 - data.csv_extractor - INFO - 今日の日付のCSVファイルを発見: /Users/masaya/project/CP_02_IPLoT/toichi/scraping-smacl/downloads/受注伝票_20250806144337.csv
+2025-08-06 15:24:32,288 - data.csv_extractor - INFO - CSV抽出開始: /Users/masaya/project/CP_02_IPLoT/toichi/scraping-smacl/downloads/受注伝票_20250806144337.csv
+2025-08-06 15:24:32,313 - data.csv_extractor - INFO - CSV抽出完了: 19 品目（ユニーク）を抽出
+2025-08-06 15:24:32,313 - __main__ - INFO - 合計 19 件のデータを抽出しました
+2025-08-06 15:24:32,313 - __main__ - INFO - フェーズ3: マスタ付け合わせ処理開始
+2025-08-06 15:24:32,313 - data.excel_processor - INFO - マスタ付け合わせ処理開始
+2025-08-06 15:24:32,313 - data.excel_processor - INFO - マスタファイル読み込み開始: /Users/masaya/project/CP_02_IPLoT/toichi/scraping-smacl/docs/角上魚類　配送依頼・出庫依頼.xlsx
+2025-08-06 15:24:32,366 - data.excel_processor - INFO - マスタシートのカラム: ['角上魚類商品コード', '東市商品コード', '倉庫名', 'グループコード', '担当者', 'line', '荷印', '商品名', '入出庫_入荷規格', '入出庫_単位', '入出庫_重量/k', '入出庫_備考', 'Toms_入数', 'Toms_単位', 'Toms_売価', 'Toms_備考']
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - マスタデータ読み込み完了: 18 件
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - マスタ突合成功: コード=134490, 商品名=冷凍するめいかソーメン
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - 商品名補完: 134490 -> 冷凍するめいかソーメン
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - マスタ突合成功: コード=222620, 商品名=冷凍鯖フィーレ30枚
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - 商品名補完: 222620 -> 冷凍鯖フィーレ30枚
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - マスタ突合成功: コード=224130, 商品名=冷凍メカジキ切身
+2025-08-06 15:24:32,367 - data.excel_processor - INFO - 商品名補完: 224130 -> 冷凍メカジキ切身
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=486420, 商品名=活〆真穴子4尾
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 486420 -> 活〆真穴子4尾
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=610710, 商品名=定塩銀鮭　甘口
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 610710 -> 定塩銀鮭　甘口
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=704720, 商品名=干カレイ1尾袋20
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 704720 -> 干カレイ1尾袋20
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=739520, 商品名=銀ダラ半割魚漬用
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 739520 -> 銀ダラ半割魚漬用
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=741530, 商品名=冷凍メカジキ切身90魚漬
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 741530 -> 冷凍メカジキ切身90魚漬
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=746030, 商品名=冷凍松いか開き（鶴ヶ島加工用）
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 746030 -> 冷凍松いか開き（鶴ヶ島加工用）
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=752240, 商品名=一夜干しいか1枚
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 752240 -> 一夜干しいか1枚
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=752350, 商品名=一夜干しいか
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 752350 -> 一夜干しいか
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=754240, 商品名=丸干しイカ1×8
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 754240 -> 丸干しイカ1×8
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=770220, 商品名=かつお生利小節10入
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 770220 -> かつお生利小節10入
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=850260, 商品名=いか七輪焼き
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 850260 -> いか七輪焼き
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=942540, 商品名=中国うなぎ長蒲焼50尾
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 942540 -> 中国うなぎ長蒲焼50尾
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=962070, 商品名=冷凍メカジキ切身・惣菜
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 962070 -> 冷凍メカジキ切身・惣菜
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ突合成功: コード=962080, 商品名=冷凍青のり
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - 商品名補完: 962080 -> 冷凍青のり
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - マスタ付け合わせ完了: 正常 1 件, エラー 2 件
+2025-08-06 15:24:32,368 - data.excel_processor - INFO - エラーリストシートへの書き込み開始
+2025-08-06 15:24:32,587 - data.excel_processor - INFO - エラーリストシート更新完了: 2件のエラーを記載
+2025-08-06 15:24:32,587 - __main__ - WARNING - エラーデータを「エラーリスト」シートに記載しました: 2件
+2025-08-06 15:24:32,587 - __main__ - INFO - === 処理完了 (処理時間: 0.3秒) ===
