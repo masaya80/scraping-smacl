@@ -34,6 +34,7 @@ class DeliveryItem:
     delivery_date: str = ""
     destination: str = ""
     supplier: str = ""
+    warehouse: str = ""  # 倉庫名を追加
     notes: str = ""
 
 

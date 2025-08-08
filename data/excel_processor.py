@@ -30,6 +30,7 @@ class MasterItem:
     category: str = ""
     unit_price: float = 0.0
     delivery_destinations: List[str] = None
+    warehouse: str = ""  # 倉庫名を追加
     notes: str = ""
     
     def __post_init__(self):
@@ -84,6 +85,7 @@ class ExcelProcessor:
                 # 他の列の情報も取得
                 item.item_name = self._get_value_from_row(row, ['商品名', '品名'])
                 item.supplier = "角上魚類"  # デフォルト
+                item.warehouse = self._get_value_from_row(row, ['倉庫名'])  # 倉庫名を取得
                 
                 # その他の情報
                 if '担当者' in df.columns:
@@ -92,7 +94,7 @@ class ExcelProcessor:
                 # 商品コードをキーとして保存（A列の値）
                 if item.item_code:
                     self.master_data[item.item_code] = item
-                    self.logger.debug(f"マスタ登録: コード={item.item_code}, 商品名={item.item_name}")
+                    self.logger.debug(f"マスタ登録: コード={item.item_code}, 商品名={item.item_name}, 倉庫={item.warehouse}")
             
             self.logger.info(f"マスタデータ読み込み完了: {len(self.master_data)} 件")
             return True
@@ -295,11 +297,24 @@ class ExcelProcessor:
             # 列幅調整
             for column in ws.columns:
                 max_length = 0
-                column_letter = column[0].column_letter
+                column_letter = None
+                
+                # マージされたセルに対応した列文字の取得
+                for cell in column:
+                    if hasattr(cell, 'column_letter'):
+                        column_letter = cell.column_letter
+                        break
+                
+                # column_letterが取得できない場合はスキップ
+                if not column_letter:
+                    continue
+                
                 for cell in column:
                     try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
+                        if hasattr(cell, 'value') and cell.value is not None:
+                            cell_length = len(str(cell.value))
+                            if cell_length > max_length:
+                                max_length = cell_length
                     except:
                         pass
                 adjusted_width = min(max_length + 2, 50)
@@ -360,11 +375,24 @@ class ExcelProcessor:
             # 列幅調整
             for column in ws.columns:
                 max_length = 0
-                column_letter = column[0].column_letter
+                column_letter = None
+                
+                # マージされたセルに対応した列文字の取得
+                for cell in column:
+                    if hasattr(cell, 'column_letter'):
+                        column_letter = cell.column_letter
+                        break
+                
+                # column_letterが取得できない場合はスキップ
+                if not column_letter:
+                    continue
+                
                 for cell in column:
                     try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
+                        if hasattr(cell, 'value') and cell.value is not None:
+                            cell_length = len(str(cell.value))
+                            if cell_length > max_length:
+                                max_length = cell_length
                     except:
                         pass
                 adjusted_width = min(max_length + 2, 50)
@@ -560,14 +588,418 @@ class ExcelProcessor:
         """列幅を自動調整"""
         for column in ws.columns:
             max_length = 0
-            column_letter = column[0].column_letter
+            column_letter = None
+            
+            # マージされたセルに対応した列文字の取得
+            for cell in column:
+                # マージされたセルでない最初のセルから列文字を取得
+                if hasattr(cell, 'column_letter'):
+                    column_letter = cell.column_letter
+                    break
+            
+            # column_letterが取得できない場合はスキップ
+            if not column_letter:
+                continue
             
             for cell in column:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
+                    if hasattr(cell, 'value') and cell.value is not None:
+                        cell_length = len(str(cell.value))
+                        if cell_length > max_length:
+                            max_length = cell_length
                 except:
                     pass
             
             adjusted_width = min(max_length + 2, 50)
-            ws.column_dimensions[column_letter].width = adjusted_width 
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def process_warehouse_orders(self, validated_data: List[DeliveryDocument], master_file_path: Path) -> bool:
+        """倉庫別注文処理 - 要求された仕様に従って既存Excelに数量を挿入"""
+        try:
+            self.logger.info("倉庫別注文処理開始")
+            
+            # マスタファイルを開く
+            if not master_file_path.exists():
+                self.logger.error(f"マスタファイルが見つかりません: {master_file_path}")
+                return False
+            
+            wb = load_workbook(master_file_path)
+            
+            # 登録商品マスタをロード
+            if not self.load_master_data(master_file_path):
+                self.logger.error("登録商品マスタの読み込みに失敗しました")
+                return False
+            
+            # すべての注文アイテムを処理
+            for document in validated_data:
+                for item in document.items:
+                    # 1. 登録商品マスタと突合
+                    if item.item_code not in self.master_data:
+                        self.logger.warning(f"商品コード {item.item_code} がマスタに見つかりません")
+                        continue
+                    
+                    # 2. C列の倉庫名を確認（ここでは商品のdelivery_destinationを使用）
+                    warehouse = self._determine_warehouse(item, document)
+                    
+                    if warehouse == "ホウスイ":
+                        self._process_housui_order(wb, item)
+                    elif warehouse == "アリスト":
+                        self._process_arist_order(wb, item)
+                    else:
+                        self.logger.warning(f"未知の倉庫名: {warehouse}")
+            
+            # outputディレクトリに結果ファイルを保存
+            output_file = self._create_output_filename(master_file_path)
+            wb.save(output_file)
+            self.logger.info(f"倉庫別注文処理完了: {output_file}")
+            
+            # PDF出力を実行
+            self._export_target_sheets_to_pdf(output_file)
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"倉庫別注文処理エラー: {str(e)}")
+            return False
+    
+    def _determine_warehouse(self, item: DeliveryItem, document: DeliveryDocument) -> str:
+        """倉庫名を判定"""
+        # DeliveryItemの倉庫名フィールドを最優先で使用
+        if item.warehouse:
+            warehouse = item.warehouse.strip()
+            # 倉庫名の正規化
+            if "ホウスイ" in warehouse or "豊水" in warehouse or "housui" in warehouse.lower():
+                return "ホウスイ"
+            elif "アリスト" in warehouse or "arist" in warehouse.lower():
+                return "アリスト"
+            else:
+                # 数値コードの場合は、マスタExcelの倉庫名列を確認
+                warehouse_from_master = self._get_warehouse_from_master(item.item_code)
+                if warehouse_from_master:
+                    return warehouse_from_master
+                
+                # その他の倉庫名の場合は、デフォルトとしてホウスイを使用
+                self.logger.warning(f"未知の倉庫名: {warehouse}、デフォルトでホウスイを使用")
+                return "ホウスイ"
+        
+        # 倉庫名が設定されていない場合は、マスタから取得を試行
+        warehouse_from_master = self._get_warehouse_from_master(item.item_code)
+        if warehouse_from_master:
+            return warehouse_from_master
+        
+        # 納品先ベースで判定（フォールバック）
+        if "ホウスイ" in (document.delivery_destination or ""):
+            return "ホウスイ"
+        elif "アリスト" in (document.delivery_destination or ""):
+            return "アリスト"
+        else:
+            # デフォルトはホウスイとする
+            self.logger.info("倉庫名が判定できません。デフォルトでホウスイを使用")
+            return "ホウスイ"
+    
+    def _get_warehouse_from_master(self, item_code: str) -> Optional[str]:
+        """マスタから商品の倉庫名を取得"""
+        try:
+            if item_code in self.master_data:
+                warehouse = self.master_data[item_code].warehouse
+                if warehouse:
+                    # 倉庫名の正規化
+                    if "ホウスイ" in warehouse or "豊水" in warehouse:
+                        return "ホウスイ"
+                    elif "アリスト" in warehouse:
+                        return "アリスト"
+                    else:
+                        self.logger.debug(f"マスタの倉庫名を正規化: {warehouse}")
+                        return "ホウスイ"  # デフォルト
+        except Exception as e:
+            self.logger.debug(f"マスタから倉庫名取得エラー: {str(e)}")
+        
+        return None
+    
+    def _process_housui_order(self, wb, item: DeliveryItem):
+        """ホウスイの場合の処理"""
+        try:
+            # 3. ホウスイ川島出庫依頼書シートを開く
+            if "ホウスイ川島出庫依頼書" not in wb.sheetnames:
+                self.logger.warning("ホウスイ川島出庫依頼書シートが見つかりません")
+                return
+            
+            housui_sheet = wb["ホウスイ川島出庫依頼書"]
+            
+            # 4. A列をみて商品コードが合致する行を取得
+            housui_row = self._find_row_by_product_code(housui_sheet, "A", item.item_code)
+            if housui_row:
+                # 5. 数量をAB列のみに挿入（A列は元のまま保持）
+                self._safe_cell_insert(housui_sheet, housui_row, 28, item.quantity)  # AB列のみ
+                self.logger.info(f"ホウスイ川島出庫依頼書のAB列に数量挿入: 行{housui_row}, 数量{item.quantity}")
+            
+            # 6. アリスト鶴ヶ島 (LT1)を開く
+            if "アリスト鶴ヶ島 (LT1)" not in wb.sheetnames:
+                self.logger.warning("アリスト鶴ヶ島 (LT1)シートが見つかりません")
+                return
+            
+            arist_sheet = wb["アリスト鶴ヶ島 (LT1)"]
+            
+            # 7. O列をみて商品コードが合致する行を取得
+            arist_row = self._find_row_by_product_code(arist_sheet, "O", item.item_code)
+            if arist_row:
+                # 8. 数量を該当する行のH列に挿入
+                self._safe_cell_insert(arist_sheet, arist_row, 8, item.quantity)  # H列
+                self.logger.info(f"アリスト鶴ヶ島 (LT1)のH列に数量挿入: 行{arist_row}, 数量{item.quantity}")
+            
+        except Exception as e:
+            self.logger.error(f"ホウスイ注文処理エラー: {str(e)}")
+    
+    def _process_arist_order(self, wb, item: DeliveryItem):
+        """アリストの場合の処理"""
+        try:
+            # 3. アリスト鶴ヶ島 (LT1)を開く
+            if "アリスト鶴ヶ島 (LT1)" not in wb.sheetnames:
+                self.logger.warning("アリスト鶴ヶ島 (LT1)シートが見つかりません")
+                return
+            
+            arist_sheet = wb["アリスト鶴ヶ島 (LT1)"]
+            
+            # 4. O列をみて商品コードが合致する行を取得
+            arist_row = self._find_row_by_product_code(arist_sheet, "O", item.item_code)
+            if arist_row:
+                # 5. 数量を該当する行のG列に挿入
+                self._safe_cell_insert(arist_sheet, arist_row, 7, item.quantity)  # G列
+                self.logger.info(f"アリスト鶴ヶ島 (LT1)のG列に数量挿入: 行{arist_row}, 数量{item.quantity}")
+            
+        except Exception as e:
+            self.logger.error(f"アリスト注文処理エラー: {str(e)}")
+    
+    def _find_row_by_product_code(self, worksheet, column_letter: str, product_code: str) -> Optional[int]:
+        """指定された列で商品コードが合致する行を検索"""
+        try:
+            # 列をA=1, B=2, ... に変換
+            column_index = ord(column_letter.upper()) - ord('A') + 1
+            
+            # 最大行数を取得
+            max_row = worksheet.max_row
+            
+            for row in range(1, max_row + 1):
+                cell_value = worksheet.cell(row=row, column=column_index).value
+                if cell_value is not None:
+                    # 数値型の場合は文字列に変換して比較
+                    cell_str = str(int(cell_value)) if isinstance(cell_value, (int, float)) else str(cell_value)
+                    if cell_str == str(product_code):
+                        return row
+            
+            self.logger.warning(f"商品コード {product_code} が{column_letter}列に見つかりませんでした")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"商品コード検索エラー: {str(e)}")
+            return None
+    
+    def _safe_cell_insert(self, worksheet, row: int, column: int, value):
+        """マージされたセルに安全に値を挿入（マージ構造を保持）"""
+        try:
+            cell = worksheet.cell(row=row, column=column)
+            cell_coordinate = cell.coordinate
+            
+            # マージされたセルかチェック
+            merged_cell_found = False
+            for merged_range in worksheet.merged_cells.ranges:
+                if cell_coordinate in merged_range:
+                    # マージされたセルの場合、左上のセル（トップレフト）に値を設定
+                    top_left_cell = worksheet.cell(merged_range.min_row, merged_range.min_col)
+                    top_left_cell.value = value
+                    merged_cell_found = True
+                    self.logger.debug(f"マージセル対応: {cell_coordinate} -> 左上セル {top_left_cell.coordinate} に値={value} を設定")
+                    break
+            
+            # 通常のセル（マージされていない）の場合
+            if not merged_cell_found:
+                cell.value = value
+                self.logger.debug(f"通常セル: {cell_coordinate} に値={value} を設定")
+            
+        except Exception as e:
+            self.logger.warning(f"セル挿入エラー (行{row}, 列{column}): {str(e)}")
+            # フォールバック: 強制的に値を設定
+            try:
+                # 直接セルアクセスで値を設定
+                from openpyxl.utils import get_column_letter
+                col_letter = get_column_letter(column)
+                worksheet[f"{col_letter}{row}"] = value
+                self.logger.debug(f"フォールバック成功: {col_letter}{row} = {value}")
+            except Exception as e2:
+                self.logger.error(f"セル挿入完全失敗 (行{row}, 列{column}): {str(e2)}")
+    
+    def _is_cells_merged(self, worksheet, row1: int, col1: int, row2: int, col2: int) -> bool:
+        """指定された2つのセルが同じマージ範囲に含まれているかチェック"""
+        try:
+            cell1_coordinate = worksheet.cell(row1, col1).coordinate
+            cell2_coordinate = worksheet.cell(row2, col2).coordinate
+            
+            for merged_range in worksheet.merged_cells.ranges:
+                if cell1_coordinate in merged_range and cell2_coordinate in merged_range:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.debug(f"マージセルチェックエラー: {str(e)}")
+            return False
+    
+    def _create_output_filename(self, master_file_path: Path) -> Path:
+        """outputディレクトリにファイル名を生成"""
+        try:
+            from config.settings import Config
+            config = Config()
+            
+            # タイムスタンプを作成
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # ベースファイル名を作成
+            base_name = master_file_path.stem
+            output_name = f"{base_name}_updated_{timestamp}.xlsx"
+            
+            output_file = config.output_dir / output_name
+            
+            self.logger.info(f"出力ファイル名生成: {output_file}")
+            return output_file
+            
+        except Exception as e:
+            self.logger.error(f"出力ファイル名生成エラー: {str(e)}")
+            # フォールバック: 元のファイルと同じディレクトリに保存
+            return master_file_path.with_suffix('.output.xlsx')
+    
+    def export_sheets_to_pdf(self, excel_file_path: Path, sheet_names: list) -> list:
+        """指定されたシートをPDFとして出力"""
+        pdf_files = []
+        
+        try:
+            from config.settings import Config
+            config = Config()
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            for sheet_name in sheet_names:
+                try:
+                    # PDFファイル名を生成
+                    safe_sheet_name = self._sanitize_filename(sheet_name)
+                    pdf_filename = f"{safe_sheet_name}_{timestamp}.pdf"
+                    pdf_path = config.output_dir / pdf_filename
+                    
+                    # xlwingsを使用してExcelファイルを開きPDF出力
+                    success = self._export_sheet_to_pdf_xlwings(excel_file_path, sheet_name, pdf_path)
+                    
+                    if success:
+                        pdf_files.append(pdf_path)
+                        self.logger.info(f"PDF出力成功: {sheet_name} -> {pdf_path}")
+                    else:
+                        self.logger.warning(f"PDF出力失敗: {sheet_name}")
+                        
+                except Exception as e:
+                    self.logger.error(f"シート '{sheet_name}' のPDF出力エラー: {str(e)}")
+            
+            return pdf_files
+            
+        except Exception as e:
+            self.logger.error(f"PDF出力処理エラー: {str(e)}")
+            return []
+    
+    def _export_sheet_to_pdf_xlwings(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """xlwingsを使用してシートをPDFに出力"""
+        try:
+            import xlwings as xw
+            
+            # Excelアプリケーションを起動（非表示）
+            app = xw.App(visible=False)
+            
+            try:
+                # ワークブックを開く
+                wb = app.books.open(str(excel_file_path))
+                
+                # 指定されたシートを取得
+                if sheet_name in [ws.name for ws in wb.sheets]:
+                    ws = wb.sheets[sheet_name]
+                    
+                    # PDFとして出力
+                    ws.to_pdf(str(pdf_path))
+                    
+                    self.logger.info(f"xlwingsでPDF出力: {sheet_name} -> {pdf_path}")
+                    return True
+                else:
+                    self.logger.warning(f"シート '{sheet_name}' が見つかりません")
+                    return False
+                    
+            finally:
+                # ワークブックとアプリケーションを閉じる
+                wb.close()
+                app.quit()
+                
+        except ImportError:
+            self.logger.warning("xlwingsがインストールされていません。代替方法を試行します")
+            return self._export_sheet_to_pdf_alternative(excel_file_path, sheet_name, pdf_path)
+        except Exception as e:
+            self.logger.error(f"xlwingsでのPDF出力エラー: {str(e)}")
+            return self._export_sheet_to_pdf_alternative(excel_file_path, sheet_name, pdf_path)
+    
+    def _export_sheet_to_pdf_alternative(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """代替方法でシートをPDFに出力（HTML経由）"""
+        try:
+            import pandas as pd
+            from weasyprint import HTML, CSS
+            
+            # Excelファイルからシートを読み込み
+            df = pd.read_excel(excel_file_path, sheet_name=sheet_name)
+            
+            # HTMLに変換
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>{sheet_name}</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    table {{ border-collapse: collapse; width: 100%; }}
+                    th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                    th {{ background-color: #f2f2f2; }}
+                    h1 {{ color: #333; }}
+                </style>
+            </head>
+            <body>
+                <h1>{sheet_name}</h1>
+                {df.to_html(escape=False, index=False)}
+            </body>
+            </html>
+            """
+            
+            # HTMLからPDFを生成
+            HTML(string=html_content).write_pdf(str(pdf_path))
+            
+            self.logger.info(f"代替方法でPDF出力: {sheet_name} -> {pdf_path}")
+            return True
+            
+        except ImportError:
+            self.logger.error("weasyprint と pandas がインストールされていません")
+            return False
+        except Exception as e:
+            self.logger.error(f"代替方法でのPDF出力エラー: {str(e)}")
+            return False
+    
+    def _export_target_sheets_to_pdf(self, excel_file_path: Path):
+        """ホウスイ川島出庫依頼書とアリスト鶴ヶ島 (LT1)シートをPDFに出力"""
+        try:
+            target_sheets = [
+                "ホウスイ川島出庫依頼書",
+                "アリスト鶴ヶ島 (LT1)"
+            ]
+            
+            self.logger.info("PDF出力開始: ホウスイ川島出庫依頼書、アリスト鶴ヶ島 (LT1)")
+            
+            pdf_files = self.export_sheets_to_pdf(excel_file_path, target_sheets)
+            
+            if pdf_files:
+                self.logger.info(f"PDF出力完了: {len(pdf_files)}件のファイルが生成されました")
+                for pdf_file in pdf_files:
+                    self.logger.info(f"生成されたPDF: {pdf_file}")
+            else:
+                self.logger.warning("PDF出力に失敗しました")
+                
+        except Exception as e:
+            self.logger.error(f"PDF出力エラー: {str(e)}") 

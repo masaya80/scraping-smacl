@@ -14,6 +14,11 @@ import glob
 from utils.logger import Logger
 from data.pdf_extractor import DeliveryDocument, DeliveryItem
 
+try:
+    import chardet
+except ImportError:
+    chardet = None
+
 
 @dataclass
 class OrderItem:
@@ -39,22 +44,38 @@ class CSVExtractor:
                 self.logger.error(f"CSVファイルが見つかりません: {csv_path}")
                 return []
             
-            # CSVファイルを読み込み（CP932エンコーディング）
-            df = pd.read_csv(csv_path, encoding='cp932')
+            # CSVファイルを読み込み（エンコーディング問題があるため、複数の方法を試行）
+            df = self._read_csv_with_fallback(csv_path)
             
-            # 必要な列が存在するかチェック
-            required_columns = ['商品コード（発注用）', '発注数量（バラ）']
-            missing_columns = [col for col in required_columns if col not in df.columns]
+            if df is None or df.empty:
+                self.logger.error("CSVファイルを読み込めませんでした")
+                return []
             
-            if missing_columns:
-                self.logger.error(f"必要な列が見つかりません: {missing_columns}")
+            # 列インデックスで必要な列を特定（列名が文字化けしている場合に対応）
+            product_code_col_idx = self._find_column_by_index_or_name(df, 108, ['商品コード（発注用）'])
+            quantity_col_idx = self._find_column_by_index_or_name(df, 146, ['発注数量（バラ）'])
+            warehouse_col_idx = self._find_column_by_index_or_name(df, 2, ['倉庫名', 'C列'])  # C列（index 2）を倉庫名として使用
+            
+            if product_code_col_idx is None or quantity_col_idx is None:
+                self.logger.error(f"必要な列が見つかりません。商品コード列: {product_code_col_idx}, 数量列: {quantity_col_idx}")
                 return []
             
             # データを抽出してDeliveryDocumentに変換
             file_date = self._extract_date_from_filename(csv_path)
             
-            # 商品コードと数量の組み合わせでグループ化して集計
-            grouped = df.groupby('商品コード（発注用）')['発注数量（バラ）'].sum().reset_index()
+            # 商品コードと数量の列を取得
+            product_code_col = df.columns[product_code_col_idx]
+            quantity_col = df.columns[quantity_col_idx]
+            warehouse_col = df.columns[warehouse_col_idx] if warehouse_col_idx is not None else None
+            
+            self.logger.info(f"使用する列: 商品コード={product_code_col} (列{product_code_col_idx}), 数量={quantity_col} (列{quantity_col_idx}), 倉庫={warehouse_col} (列{warehouse_col_idx})")
+            
+            # 商品コード、倉庫名、数量の組み合わせでグループ化して集計
+            group_cols = [product_code_col]
+            if warehouse_col is not None:
+                group_cols.append(warehouse_col)
+            
+            grouped = df.groupby(group_cols)[quantity_col].sum().reset_index()
             
             # DeliveryDocumentとDeliveryItemを作成
             document = DeliveryDocument()
@@ -64,8 +85,9 @@ class CSVExtractor:
             document.items = []
             
             for _, row in grouped.iterrows():
-                item_code = str(row['商品コード（発注用）']).strip()
-                quantity = int(row['発注数量（バラ）'])
+                item_code = str(row[product_code_col]).strip()
+                quantity = int(row[quantity_col])
+                warehouse = str(row[warehouse_col]).strip() if warehouse_col is not None and warehouse_col in row else ""
                 
                 # 空の商品コードやゼロ数量はスキップ
                 if not item_code or item_code == 'nan' or quantity <= 0:
@@ -78,10 +100,11 @@ class CSVExtractor:
                 delivery_item.quantity = quantity
                 delivery_item.unit = "個"
                 delivery_item.delivery_date = file_date
+                delivery_item.warehouse = warehouse  # 倉庫名を設定
                 delivery_item.notes = f"CSV抽出元: {csv_path.name}"
                 
                 document.items.append(delivery_item)
-                self.logger.debug(f"商品コード: {item_code}, 数量: {quantity}")
+                self.logger.debug(f"商品コード: {item_code}, 数量: {quantity}, 倉庫: {warehouse}")
             
             self.logger.info(f"CSV抽出完了: {len(document.items)} 品目（ユニーク）を抽出")
             return [document] if document.items else []
@@ -89,6 +112,126 @@ class CSVExtractor:
         except Exception as e:
             self.logger.error(f"CSV抽出エラー: {str(e)}")
             return []
+    
+    def _detect_encoding(self, csv_path: Path) -> str:
+        """CSVファイルのエンコーディングを検出"""
+        try:
+            # 直接一般的なエンコーディングを試行（より確実）
+            return self._try_common_encodings(csv_path)
+                
+        except Exception as e:
+            self.logger.warning(f"エンコーディング検出エラー: {str(e)}")
+            return 'cp932'
+    
+    def _try_common_encodings(self, csv_path: Path) -> str:
+        """一般的なエンコーディングを試行"""
+        # 日本語CSVファイルでよく使われるエンコーディングを優先
+        encodings = ['cp932', 'shift_jis', 'utf-8', 'utf-8-sig', 'iso-2022-jp']
+        
+        for encoding in encodings:
+            try:
+                # pandasで実際に読み込みテストを行う
+                test_df = pd.read_csv(csv_path, encoding=encoding, nrows=1)
+                
+                # 日本語の列名があることを確認（文字化けしていないか）
+                columns_str = str(test_df.columns.tolist())
+                self.logger.debug(f"エンコーディング {encoding} での列名例: {columns_str[:100]}...")
+                
+                if '商品' in columns_str or '数量' in columns_str:
+                    self.logger.info(f"エンコーディング試行成功（列名確認済み）: {encoding}")
+                    return encoding
+                elif '�' in columns_str:
+                    # 文字化けがある場合は次を試行
+                    self.logger.debug(f"エンコーディング {encoding} で文字化けを検出")
+                    continue
+                else:
+                    # 文字化けがなく読み込めた場合は採用
+                    self.logger.info(f"エンコーディング試行成功: {encoding}")
+                    return encoding
+                
+            except (UnicodeDecodeError, UnicodeError, pd.errors.EmptyDataError):
+                continue
+            except Exception as e:
+                self.logger.debug(f"エンコーディング試行エラー ({encoding}): {str(e)}")
+                continue
+        
+        # すべて失敗した場合はcp932をデフォルトとして返す
+        self.logger.warning("適切なエンコーディングが見つかりませんでした。cp932を使用します。")
+        return 'cp932'
+    
+    def _read_csv_with_fallback(self, csv_path: Path):
+        """複数の方法でCSVファイルを読み込み"""
+        # 複数の読み込み設定を試行
+        configs = [
+            {'encoding': 'cp932', 'engine': 'c', 'low_memory': False},
+            {'encoding': 'shift_jis', 'engine': 'c', 'low_memory': False},
+            {'encoding': 'cp932', 'on_bad_lines': 'skip', 'engine': 'python'},
+            {'encoding': 'shift_jis', 'on_bad_lines': 'skip', 'engine': 'python'},
+            {'encoding': 'cp932', 'engine': 'python'},
+            {'encoding': 'shift_jis', 'engine': 'python'},
+            {'encoding': 'latin1', 'engine': 'c', 'low_memory': False},
+            {'encoding': 'utf-8', 'engine': 'c', 'low_memory': False},
+            {'encoding': 'latin1', 'on_bad_lines': 'skip', 'engine': 'python'},
+            {'encoding': 'utf-8', 'on_bad_lines': 'skip', 'engine': 'python'},
+        ]
+        
+        for config in configs:
+            try:
+                self.logger.debug(f"CSV読み込み試行: {config}")
+                # CSVファイルを読み込み（エンジンがpythonの場合はlow_memoryを除外）
+                read_params = config.copy()
+                if config.get('engine') == 'python' and 'low_memory' in read_params:
+                    read_params.pop('low_memory')
+                
+                df = pd.read_csv(csv_path, **read_params)
+                
+                self.logger.debug(f"読み込み結果: 列数={len(df.columns)}, 行数={len(df)}")
+                
+                # 最低限の行数と列数をチェック
+                if len(df.columns) >= 150 and len(df) > 10:
+                    self.logger.info(f"CSV読み込み成功: {config} (列数: {len(df.columns)}, 行数: {len(df)})")
+                    return df
+                elif len(df.columns) >= 150:
+                    self.logger.warning(f"CSV読み込み（行数少ない）: {config} (列数: {len(df.columns)}, 行数: {len(df)})")
+                    # 行数が少ないが、列数が正しい場合は使用
+                    return df
+                else:
+                    self.logger.warning(f"CSV読み込み（条件不適合）: {config} (列数: {len(df.columns)}, 行数: {len(df)})")
+                    
+            except Exception as e:
+                self.logger.warning(f"CSV読み込みエラー ({config}): {str(e)}")
+                continue
+        
+        self.logger.error("すべての設定でCSV読み込みに失敗しました")
+        return None
+    
+    def _find_column_by_index_or_name(self, df, expected_index: int, possible_names: list):
+        """列インデックスまたは列名で列を特定"""
+        try:
+            # まず期待されるインデックスの列が存在するかチェック
+            if expected_index < len(df.columns):
+                self.logger.info(f"列{expected_index}を使用: {df.columns[expected_index]}")
+                return expected_index
+            
+            # 列名で検索
+            for name in possible_names:
+                if name in df.columns:
+                    col_idx = df.columns.get_loc(name)
+                    self.logger.info(f"列名「{name}」で発見: 列{col_idx}")
+                    return col_idx
+            
+            # 部分一致で検索
+            for i, col_name in enumerate(df.columns):
+                for name in possible_names:
+                    if name in str(col_name):
+                        self.logger.info(f"部分一致で発見「{name}」: 列{i} ({col_name})")
+                        return i
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"列検索エラー: {str(e)}")
+            return None
     
     def _extract_date_from_filename(self, csv_path: Path) -> str:
         """ファイル名から日付を抽出"""

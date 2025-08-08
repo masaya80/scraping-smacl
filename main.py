@@ -59,15 +59,14 @@ class DeliveryListProcessor:
             if not extracted_data:
                 self.logger.error("フェーズ2: データ抽出が失敗しました")
                 return False
-            print(extracted_data)
                 
             # # フェーズ3: マスタExcelとの付け合わせ
             validated_data, error_data = self._phase3_master_validation(extracted_data)
             
             # # フェーズ4: 配車表・出庫依頼Excel作成
-            # if not self._phase4_excel_generation(validated_data):
-            #     self.logger.error("フェーズ4: Excel生成が失敗しました")
-            #     return False
+            if not self._phase4_excel_generation(validated_data):
+                self.logger.error("フェーズ4: Excel生成が失敗しました")
+                return False
                 
             # # フェーズ5: LineBot通知
             # self._phase5_notification(validated_data, error_data)
@@ -166,27 +165,21 @@ class DeliveryListProcessor:
             return [], []
     
     def _phase4_excel_generation(self, validated_data):
-        """フェーズ4: 配車表・出庫依頼Excel作成"""
+        """フェーズ4: 倉庫別注文処理 - 既存Excelシートに数量を挿入"""
         try:
-            self.logger.info("フェーズ4: Excel生成処理開始")
+            self.logger.info("フェーズ4: 倉庫別注文処理開始")
             
-            # 納品先ごとにグループ化
-            grouped_data = self.excel_processor.group_by_destination(validated_data)
+            # 要求された仕様に従って既存マスタExcelに数量を挿入
+            success = self.excel_processor.process_warehouse_orders(
+                validated_data, self.config.master_excel_path
+            )
             
-            generated_files = []
-            for destination, data in grouped_data.items():
-                # 配車表作成
-                dispatch_file = self.excel_processor.create_dispatch_table(destination, data)
-                if dispatch_file:
-                    generated_files.append(dispatch_file)
-                    
-                # 出庫依頼作成
-                shipping_file = self.excel_processor.create_shipping_request(destination, data)
-                if shipping_file:
-                    generated_files.append(shipping_file)
+            if success:
+                self.logger.info("倉庫別注文処理が正常に完了しました")
+            else:
+                self.logger.error("倉庫別注文処理が失敗しました")
             
-            self.logger.info(f"{len(generated_files)} 個のExcelファイルを生成しました")
-            return True
+            return success
             
         except Exception as e:
             self.logger.error(f"フェーズ4でエラー: {str(e)}")

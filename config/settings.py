@@ -46,8 +46,8 @@ class Config:
         self.shipping_template = self.excel_template_dir / "出庫依頼_テンプレート.xlsx"
         
         # LINE Bot設定
-        self.line_channel_access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-        self.line_user_id = os.getenv("LINE_USER_ID")
+        self.line_channel_access_token = 'dummy'
+        self.line_user_id = 'dummy'
         
         # ログ設定
         self.log_level = "INFO"
