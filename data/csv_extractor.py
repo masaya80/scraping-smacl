@@ -257,23 +257,25 @@ class CSVExtractor:
             return datetime.now().strftime('%Y-%m-%d')
     
     def find_latest_csv_file(self, directory: Path, pattern: str = "受注伝票_*.csv") -> Optional[Path]:
-        """最新のCSVファイルを検索"""
+        """最新のCSVファイルを検索（`directory` 直下と `directory/unconfirmed` の両方を探索）"""
         try:
             self.logger.info(f"CSVファイル検索開始: {directory}")
             
-            # パターンに一致するファイルを検索
-            csv_files = list(directory.glob(pattern))
+            # 直下と unconfirmed サブディレクトリを探索
+            candidates = []
+            candidates.extend(list(directory.glob(pattern)))
+            unconfirmed_dir = directory / "unconfirmed"
+            if unconfirmed_dir.exists():
+                candidates.extend(list(unconfirmed_dir.glob(pattern)))
             
-            if not csv_files:
+            if not candidates:
                 self.logger.warning(f"パターンに一致するCSVファイルが見つかりません: {pattern}")
                 return None
             
-            # ファイル名の日付部分で並び替え（新しい順）
-            csv_files.sort(key=lambda x: x.stem, reverse=True)
-            
-            latest_file = csv_files[0]
+            # 更新時刻の新しい順で選択
+            candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            latest_file = candidates[0]
             self.logger.info(f"最新のCSVファイルを発見: {latest_file}")
-            
             return latest_file
             
         except Exception as e:
@@ -281,23 +283,25 @@ class CSVExtractor:
             return None
     
     def find_today_csv_file(self, directory: Path) -> Optional[Path]:
-        """今日の日付のCSVファイルを検索"""
+        """今日の日付のCSVファイルを検索（直下と `unconfirmed` を探索）"""
         try:
             today_str = datetime.now().strftime('%Y%m%d')
             pattern = f"受注伝票_{today_str}*.csv"
             
-            csv_files = list(directory.glob(pattern))
+            candidates = []
+            candidates.extend(list(directory.glob(pattern)))
+            unconfirmed_dir = directory / "unconfirmed"
+            if unconfirmed_dir.exists():
+                candidates.extend(list(unconfirmed_dir.glob(pattern)))
             
-            if not csv_files:
+            if not candidates:
                 self.logger.warning(f"今日の日付のCSVファイルが見つかりません: {pattern}")
                 return None
             
-            # 時刻が最新のファイルを選択
-            csv_files.sort(key=lambda x: x.stem, reverse=True)
-            
-            latest_file = csv_files[0]
+            # 更新時刻の新しい順で選択
+            candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            latest_file = candidates[0]
             self.logger.info(f"今日の日付のCSVファイルを発見: {latest_file}")
-            
             return latest_file
             
         except Exception as e:

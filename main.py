@@ -49,10 +49,10 @@ class DeliveryListProcessor:
             self.logger.info("=== 納品リスト処理システム開始 ===")
             start_time = datetime.now()
             
-            # フェーズ1: スマクラログインと納品リストダウンロード
-            # if not self._phase1_scraping():
-            #     self.logger.error("フェーズ1: スクレイピング処理が失敗しました")
-            #     return False
+            # フェーズ1: スマクラログインと当日CSVダウンロード
+            if not self._phase1_scraping():
+                self.logger.error("フェーズ1: スクレイピング処理が失敗しました")
+                return False
                 
             # フェーズ2: CSVデータ抽出
             extracted_data = self._phase2_data_extraction()
@@ -87,17 +87,17 @@ class DeliveryListProcessor:
             self._cleanup()
     
     def _phase1_scraping(self):
-        """フェーズ1: スマクラログインと納品リストダウンロード"""
+        """フェーズ1: スマクラログインと当日CSVダウンロード"""
         try:
-            self.logger.info("フェーズ1: スクレイピング処理開始")
+            self.logger.info("フェーズ1: スクレイピング処理開始（未確定CSVダウンロード）")
             
             self.scraper = SMCLScraper(
                 download_dir=self.config.download_dir,
                 headless=self.config.headless_mode
             )
             
-            # スマクラにログインして納品リストをダウンロード
-            return self.scraper.download_delivery_lists()
+            # スマクラにログインして未確定CSV（当日扱い）をダウンロード
+            return self.scraper.download_unconfirmed_csv()
             
         except Exception as e:
             self.logger.error(f"フェーズ1でエラー: {str(e)}")

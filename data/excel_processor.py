@@ -875,13 +875,16 @@ class ExcelProcessor:
             from config.settings import Config
             config = Config()
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            # 出力先を output/unconfirmed に統一（未確定=当日運用に合わせる）
+            pdf_base_dir = config.output_dir / "unconfirmed"
+            pdf_base_dir.mkdir(exist_ok=True)
             
             for sheet_name in sheet_names:
                 try:
                     # PDFファイル名を生成
                     safe_sheet_name = self._sanitize_filename(sheet_name)
                     pdf_filename = f"{safe_sheet_name}_{timestamp}.pdf"
-                    pdf_path = config.output_dir / pdf_filename
+                    pdf_path = pdf_base_dir / pdf_filename
                     
                     # xlwingsを使用してExcelファイルを開きPDF出力
                     success = self._export_sheet_to_pdf_xlwings(excel_file_path, sheet_name, pdf_path)
@@ -970,6 +973,9 @@ class ExcelProcessor:
             """
             
             # HTMLからPDFを生成
+            # 事前に出力ディレクトリを確実に作成
+            pdf_dir = Path(pdf_path).parent
+            pdf_dir.mkdir(parents=True, exist_ok=True)
             HTML(string=html_content).write_pdf(str(pdf_path))
             
             self.logger.info(f"代替方法でPDF出力: {sheet_name} -> {pdf_path}")
