@@ -902,8 +902,17 @@ class ExcelProcessor:
             return []
     
     def _export_sheet_to_pdf_xlwings(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
-        """xlwingsを使用してシートをPDFに出力"""
+        """xlwingsを使用してシートをPDFに出力（設定に応じて有効/無効）"""
         try:
+            # 設定を確認してExcelアプリケーションの使用を判定
+            from config.settings import Config
+            config = Config()
+            
+            # macOSなど、Excelアプリの使用が無効になっている場合は代替方法を使用
+            if not config.enable_excel_app:
+                self.logger.info("Excel アプリケーションの使用が無効化されています。代替方法を使用します")
+                return self._export_sheet_to_pdf_alternative(excel_file_path, sheet_name, pdf_path)
+            
             import xlwings as xw
             
             # Excelアプリケーションを起動（非表示）
@@ -939,10 +948,187 @@ class ExcelProcessor:
             return self._export_sheet_to_pdf_alternative(excel_file_path, sheet_name, pdf_path)
     
     def _export_sheet_to_pdf_alternative(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
-        """代替方法でシートをPDFに出力（HTML経由）"""
+        """代替方法でシートをPDFに出力（openpyxl + HTML経由）"""
+        try:
+            # まずweasyprint経由を試行
+            if self._export_sheet_to_pdf_weasyprint(excel_file_path, sheet_name, pdf_path):
+                return True
+            
+            # weasyprint が利用できない場合は、pandasでシンプルなPDF出力を試行
+            return self._export_sheet_to_pdf_pandas(excel_file_path, sheet_name, pdf_path)
+            
+        except Exception as e:
+            self.logger.error(f"代替方法でのPDF出力エラー: {str(e)}")
+            return False
+    
+    def _export_sheet_to_pdf_weasyprint(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """weasprintを使用してPDF出力（高品質）"""
+        try:
+            from weasyprint import HTML, CSS
+            
+            # openpyxlでワークシートを読み込み（セル結合とスタイル情報を保持）
+            wb = load_workbook(excel_file_path, data_only=True)
+            if sheet_name not in wb.sheetnames:
+                self.logger.warning(f"シート '{sheet_name}' が見つかりません")
+                return False
+            
+            ws = wb[sheet_name]
+            
+            # HTMLテーブルを生成（より正確にセル結合を反映）
+            html_content = self._generate_html_from_worksheet(ws, sheet_name)
+            
+            # CSSスタイル定義
+            css_style = CSS(string="""
+                @page {
+                    size: A4 landscape;
+                    margin: 1cm;
+                }
+                body {
+                    font-family: Arial, "MS PGothic", sans-serif;
+                    font-size: 12px;
+                    margin: 0;
+                }
+                table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    table-layout: fixed;
+                }
+                th, td {
+                    border: 1px solid #000;
+                    padding: 4px;
+                    text-align: left;
+                    vertical-align: top;
+                    word-wrap: break-word;
+                }
+                th {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                }
+                .header-cell {
+                    background-color: #e6f3ff;
+                    font-weight: bold;
+                }
+                .title {
+                    font-size: 16px;
+                    font-weight: bold;
+                    text-align: center;
+                    margin-bottom: 10px;
+                }
+            """)
+            
+            # HTMLからPDFを生成
+            HTML(string=html_content).write_pdf(str(pdf_path), stylesheets=[css_style])
+            
+            wb.close()
+            self.logger.info(f"weasyprint でPDF出力成功: {sheet_name} -> {pdf_path}")
+            return True
+            
+        except ImportError:
+            self.logger.debug("weasyprint がインストールされていません")
+            return False
+        except Exception as e:
+            self.logger.debug(f"weasyprint でのPDF出力エラー: {str(e)}")
+            return False
+    
+    def _generate_html_from_worksheet(self, worksheet, sheet_name: str) -> str:
+        """ワークシートからHTMLテーブルを生成（セル結合を考慮）"""
+        try:
+            html_rows = []
+            max_row = min(worksheet.max_row, 200)  # 最大200行まで処理
+            max_col = min(worksheet.max_column, 50)  # 最大50列まで処理
+            
+            # マージされたセル範囲を取得
+            merged_ranges = list(worksheet.merged_cells.ranges)
+            
+            for row in range(1, max_row + 1):
+                html_cells = []
+                
+                for col in range(1, max_col + 1):
+                    cell = worksheet.cell(row=row, column=col)
+                    
+                    # マージされたセルの処理
+                    skip_cell = False
+                    rowspan = 1
+                    colspan = 1
+                    
+                    for merged_range in merged_ranges:
+                        if cell.coordinate in merged_range:
+                            # マージされたセルの左上セル以外はスキップ
+                            if cell.row != merged_range.min_row or cell.column != merged_range.min_col:
+                                skip_cell = True
+                                break
+                            else:
+                                # 左上セルの場合はrowspanとcolspanを設定
+                                rowspan = merged_range.max_row - merged_range.min_row + 1
+                                colspan = merged_range.max_col - merged_range.min_col + 1
+                    
+                    if skip_cell:
+                        continue
+                    
+                    # セルの値を取得
+                    cell_value = cell.value if cell.value is not None else ""
+                    cell_value_str = str(cell_value).strip()
+                    
+                    # セルのクラスを決定
+                    cell_class = ""
+                    if cell.fill and hasattr(cell.fill, 'start_color') and cell.fill.start_color.rgb:
+                        cell_class = "header-cell"
+                    
+                    # HTMLセルを生成
+                    attrs = []
+                    if rowspan > 1:
+                        attrs.append(f'rowspan="{rowspan}"')
+                    if colspan > 1:
+                        attrs.append(f'colspan="{colspan}"')
+                    if cell_class:
+                        attrs.append(f'class="{cell_class}"')
+                    
+                    attrs_str = ' ' + ' '.join(attrs) if attrs else ''
+                    html_cells.append(f"<td{attrs_str}>{cell_value_str}</td>")
+                
+                if html_cells:
+                    html_rows.append(f"<tr>{''.join(html_cells)}</tr>")
+            
+            # HTMLドキュメントを構成
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>{sheet_name}</title>
+            </head>
+            <body>
+                <div class="title">{sheet_name}</div>
+                <table>
+                    {''.join(html_rows)}
+                </table>
+            </body>
+            </html>
+            """
+            
+            return html_content
+            
+        except Exception as e:
+            self.logger.error(f"HTML生成エラー: {str(e)}")
+            # フォールバック: シンプルなHTML
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>{sheet_name}</title>
+            </head>
+            <body>
+                <h1>{sheet_name}</h1>
+                <p>データの表示でエラーが発生しました: {str(e)}</p>
+            </body>
+            </html>
+            """
+    
+    def _export_sheet_to_pdf_pandas(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """pandasを使用したシンプルなPDF出力（フォールバック）"""
         try:
             import pandas as pd
-            from weasyprint import HTML, CSS
             
             # Excelファイルからシートを読み込み
             df = pd.read_excel(excel_file_path, sheet_name=sheet_name)
@@ -969,17 +1155,18 @@ class ExcelProcessor:
             </html>
             """
             
-            # HTMLからPDFを生成
-            HTML(string=html_content).write_pdf(str(pdf_path))
+            # HTMLファイルとして一時保存し、警告メッセージを出力
+            html_temp_file = pdf_path.with_suffix('.html')
+            with open(html_temp_file, 'w', encoding='utf-8') as f:
+                f.write(html_content)
             
-            self.logger.info(f"代替方法でPDF出力: {sheet_name} -> {pdf_path}")
+            self.logger.warning(f"PDF出力の代わりにHTMLファイルを生成しました: {html_temp_file}")
+            self.logger.warning("完全なPDF出力を行うには、weasyprint をインストールしてください: pip install weasyprint")
+            
             return True
             
-        except ImportError:
-            self.logger.error("weasyprint と pandas がインストールされていません")
-            return False
         except Exception as e:
-            self.logger.error(f"代替方法でのPDF出力エラー: {str(e)}")
+            self.logger.error(f"pandas でのHTML出力エラー: {str(e)}")
             return False
     
     def _export_target_sheets_to_pdf(self, excel_file_path: Path):

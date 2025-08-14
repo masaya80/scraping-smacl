@@ -59,8 +59,56 @@ class Config:
         self.max_retry_count = 3
         self.retry_delay = 2.0
         
+        # 環境設定
+        self.enable_excel_app = self._should_enable_excel_app()
+        
+        # PDF出力設定
+        self.pdf_output_method = self._get_pdf_output_method()
+        
         # ディレクトリを作成
         self._ensure_directories()
+        
+    def _should_enable_excel_app(self) -> bool:
+        """Excel アプリケーションを使用するかどうかを判定（macOSでは無効化）"""
+        import platform
+        
+        # 環境変数で強制的に有効/無効にできる
+        force_enable = os.getenv('SMCL_FORCE_EXCEL_APP', '').lower() in ('true', '1', 'yes')
+        force_disable = os.getenv('SMCL_DISABLE_EXCEL_APP', '').lower() in ('true', '1', 'yes')
+        
+        if force_enable:
+            return True
+        if force_disable:
+            return False
+        
+        system = platform.system().lower()
+        
+        # macOSでは権限問題を回避するためExcelアプリを使用しない
+        if system == "darwin":  # macOS
+            return False
+        # WindowsやLinuxでは使用可能
+        elif system == "windows":
+            return True
+        else:
+            return False
+    
+    def _get_pdf_output_method(self) -> str:
+        """PDF出力方法を決定"""
+        import platform
+        
+        # 環境変数で指定可能
+        method = os.getenv('SMCL_PDF_METHOD', '').lower()
+        if method in ['xlwings', 'weasyprint', 'html']:
+            return method
+        
+        # デフォルト設定
+        system = platform.system().lower()
+        if system == "darwin":  # macOS
+            return "weasyprint"  # macOSではweasyprint推奨
+        elif system == "windows":
+            return "xlwings"  # WindowsではExcelアプリ使用
+        else:
+            return "weasyprint"  # Linuxなどではweasyprint
     
     def _ensure_directories(self):
         """必要なディレクトリを作成"""
