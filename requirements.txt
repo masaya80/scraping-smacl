@@ -8,4 +8,12 @@ xlwings>=0.30.0
 weasyprint>=60.0
 # macOS環境でのPDF出力に必要（オプション）
 # weasyprint がインストールできない場合のフォールバック
-html2text>=2020.1.16 
+html2text>=2020.1.16
+# PDF to Image conversion
+pdf2image>=1.16.3
+Pillow>=10.0.0
+# Google Drive API
+google-api-python-client>=2.100.0
+google-auth>=2.20.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0 

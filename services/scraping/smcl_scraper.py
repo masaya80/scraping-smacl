@@ -17,15 +17,16 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
 
-from utils.logger import Logger
+from ..core.logger import Logger
 
 
 class SMCLScraper:
     """SMCL Webサイトのスクレイピングクラス"""
     
-    def __init__(self, download_dir: Path, headless: bool = True):
+    def __init__(self, download_dir: Path, headless: bool = True, config=None):
         self.download_dir = Path(download_dir)
         self.headless = headless
+        self.config = config
         self.driver = None
         self.logger = Logger(__name__)
         
@@ -285,19 +286,20 @@ class SMCLScraper:
             )
             
             # セレクトボックスを「参照済」に変更
-            select_element = WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located((By.ID, "ctl00_ContentPlaceHolder1_FormView1_RefDropDownList"))
-            )
-            
-            select = Select(select_element)
-            current_option = select.first_selected_option
-            self.logger.info(f"現在の選択: {current_option.text}")
-            
-            select.select_by_value("1")  # 参照済
-            selected_option = select.first_selected_option
-            self.logger.info(f"変更後の選択: {selected_option.text}")
-            
-            time.sleep(1)
+            if not (self.config and getattr(self.config, 'test_mode', False)):
+                select_element = WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.ID, "ctl00_ContentPlaceHolder1_FormView1_DeciDropDownList"))
+                )
+
+                select = Select(select_element)
+                current_option = select.first_selected_option
+                self.logger.info(f"現在の選択: {current_option.text}")
+                
+                select.select_by_value("0")  # 参照済
+                selected_option = select.first_selected_option
+                self.logger.info(f"変更後の選択: {selected_option.text}")
+                
+                time.sleep(1)
             
             # 検索ボタンをクリック
             search_button = WebDriverWait(self.driver, 15).until(
@@ -318,7 +320,7 @@ class SMCLScraper:
             # 検索結果確認
             rows = self.driver.find_elements(By.XPATH, "//table//tr[position()>1]")
             self.logger.info(f"検索結果データ行数: {len(rows)}")
-            
+
             return True
             
         except TimeoutException:
@@ -366,7 +368,7 @@ class SMCLScraper:
             
             # ダウンロードボタンをクリック（ダウンロード）
             print_button = WebDriverWait(self.driver, 15).until(
-                EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_FormView2_DownloadButton"))
+                EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_FormView2_PrintButton"))
             )
             
             self.driver.execute_script("arguments[0].scrollIntoView(true);", print_button)
@@ -386,6 +388,13 @@ class SMCLScraper:
             time.sleep(1)
             checkbox.click()
             self.logger.info("チェックボックスをクリックしました")
+
+            # 確定ボタンをクリック
+            confirm_button = WebDriverWait(self.driver, 15).until(
+                EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_DecideButton"))
+            )
+            confirm_button.click()
+            self.logger.info("確定ボタンをクリックしました")
             
             time.sleep(2)
             return True
@@ -439,10 +448,10 @@ class SMCLScraper:
                 return False
             
             # すべての受注伝票を処理
-            max_attempts = 10
             attempt = 0
+            test_mode = self.config and getattr(self.config, 'test_mode', False)
             
-            while attempt < max_attempts:
+            while True:
                 attempt += 1
                 self.logger.info(f"処理ラウンド {attempt}")
                 
@@ -456,15 +465,21 @@ class SMCLScraper:
                     self.logger.info("すべての納品リストのダウンロードが完了")
                     return True
                 
+                if attempt == 1:
+                    # CSVダウンロード
+                    self.download_csv()
+                
                 # 詳細処理とダウンロード
                 if not self.process_order_details_and_download():
                     self.logger.error("詳細処理に失敗")
                     break
                 
+                # test_modeがtrueの場合は1回で終了
+                if test_mode:
+                    self.logger.info("テストモードのため1回で処理を終了します")
+                    return True
+                
                 time.sleep(3)
-            
-            if attempt >= max_attempts:
-                self.logger.warning(f"最大試行回数({max_attempts})に達しました")
             
             return False
             
@@ -473,6 +488,22 @@ class SMCLScraper:
             return False
         finally:
             self.cleanup()
+    
+    # 受注一覧CSVダウンロード
+    def download_csv(self):
+        """CSVダウンロード"""
+        try:
+            self.logger.info("CSVダウンロード開始")
+            download_button = WebDriverWait(self.driver, 15).until(
+                EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_DownloadButton"))
+            )
+            download_button.click()
+            self.logger.info("CSVダウンロードボタンをクリックしました")
+            time.sleep(5)
+            return True
+        except Exception as e:
+            self.logger.error(f"CSVダウンロードエラー: {str(e)}")
+            return False
     
     def cleanup(self):
         """リソースのクリーンアップ"""

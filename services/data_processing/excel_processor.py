@@ -8,7 +8,7 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional, Any
-from dataclasses import dataclass
+from copy import copy
 
 try:
     import openpyxl
@@ -17,36 +17,8 @@ try:
 except ImportError:
     openpyxl = None
 
-from utils.logger import Logger
-from data.pdf_extractor import DeliveryDocument, DeliveryItem
-
-
-@dataclass
-class MasterItem:
-    """マスタアイテムのデータクラス"""
-    item_code: str = ""
-    item_name: str = ""
-    supplier: str = ""
-    category: str = ""
-    unit_price: float = 0.0
-    delivery_destinations: List[str] = None
-    warehouse: str = ""  # 倉庫名を追加
-    notes: str = ""
-    
-    def __post_init__(self):
-        if self.delivery_destinations is None:
-            self.delivery_destinations = []
-
-
-@dataclass
-class ValidationError:
-    """バリデーションエラーのデータクラス"""
-    error_type: str = ""
-    item_name: str = ""
-    expected_value: str = ""
-    actual_value: str = ""
-    description: str = ""
-    document_id: str = ""
+from ..core.logger import Logger
+from ..core.models import DeliveryDocument, DeliveryItem, MasterItem, ValidationError
 
 
 class ExcelProcessor:
@@ -343,7 +315,7 @@ class ExcelProcessor:
                 return None
             
             # 出力ディレクトリを取得
-            from config.settings import Config
+            from ..core.config import Config
             config = Config()
             
             # ファイル名生成
@@ -435,7 +407,7 @@ class ExcelProcessor:
         try:
             self.logger.info(f"配車表作成開始: {destination}")
             
-            from config.settings import Config
+            from ..core.config import Config
             config = Config()
             
             # ファイル名生成
@@ -496,7 +468,7 @@ class ExcelProcessor:
         try:
             self.logger.info(f"出庫依頼書作成開始: {destination}")
             
-            from config.settings import Config
+            from ..core.config import Config
             config = Config()
             
             # ファイル名生成
@@ -847,7 +819,7 @@ class ExcelProcessor:
     def _create_output_filename(self, master_file_path: Path) -> Path:
         """outputディレクトリにファイル名を生成"""
         try:
-            from config.settings import Config
+            from ..core.config import Config
             config = Config()
             
             # タイムスタンプを作成
@@ -855,7 +827,7 @@ class ExcelProcessor:
             
             # ベースファイル名を作成
             base_name = master_file_path.stem
-            output_name = f"{base_name}_updated_{timestamp}.xlsx"
+            output_name = f"{timestamp}_{base_name}.xlsx"
             
             output_file = config.output_dir / output_name
             
@@ -872,7 +844,7 @@ class ExcelProcessor:
         pdf_files = []
         
         try:
-            from config.settings import Config
+            from ..core.config import Config
             config = Config()
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             
@@ -883,8 +855,13 @@ class ExcelProcessor:
                     pdf_filename = f"{safe_sheet_name}_{timestamp}.pdf"
                     pdf_path = config.output_dir / pdf_filename
                     
-                    # xlwingsを使用してExcelファイルを開きPDF出力
-                    success = self._export_sheet_to_pdf_xlwings(excel_file_path, sheet_name, pdf_path)
+                    # アリスト配車表の場合は専用メソッドを使用
+                    if "アリスト" in sheet_name or "LT" in sheet_name:
+                        self.logger.info(f"🚛 アリスト配車表を検出: {sheet_name}")
+                        success = self._export_sheet_to_pdf_aristot_optimized(excel_file_path, sheet_name, pdf_path)
+                    else:
+                        # 通常のPDF出力
+                        success = self._export_sheet_to_pdf_xlwings(excel_file_path, sheet_name, pdf_path)
                     
                     if success:
                         pdf_files.append(pdf_path)
@@ -905,7 +882,7 @@ class ExcelProcessor:
         """xlwingsを使用してシートをPDFに出力（設定に応じて有効/無効）"""
         try:
             # 設定を確認してExcelアプリケーションの使用を判定
-            from config.settings import Config
+            from ..core.config import Config
             config = Config()
             
             # macOSなど、Excelアプリの使用が無効になっている場合は代替方法を使用
@@ -948,79 +925,633 @@ class ExcelProcessor:
             return self._export_sheet_to_pdf_alternative(excel_file_path, sheet_name, pdf_path)
     
     def _export_sheet_to_pdf_alternative(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
-        """代替方法でシートをPDFに出力（openpyxl + HTML経由）"""
+        """代替方法でシートをPDFに出力（Excel本来のレイアウトを保持）"""
         try:
-            # まずweasyprint経由を試行
-            if self._export_sheet_to_pdf_weasyprint(excel_file_path, sheet_name, pdf_path):
+            # 1. LibreOffice経由でのPDF出力を最優先で試行（高品質出力）
+            if self._export_sheet_to_pdf_libreoffice_enhanced(excel_file_path, sheet_name, pdf_path):
                 return True
             
-            # weasyprint が利用できない場合は、pandasでシンプルなPDF出力を試行
+            # 2. Excelのネイティブ印刷機能を試行（macOS/Windows）
+            if self._export_sheet_to_pdf_native_excel_enhanced(excel_file_path, sheet_name, pdf_path):
+                return True
+            
+            # 3. 従来のLibreOffice方式を試行
+            if self._export_sheet_to_pdf_libreoffice(excel_file_path, sheet_name, pdf_path):
+                return True
+            
+            # 4. 最終フォールバック: 従来のweasyprint方式（品質は劣る）
+            if self._export_sheet_to_pdf_weasyprint(excel_file_path, sheet_name, pdf_path):
+                self.logger.warning("⚠️ Excel本来のレイアウトではなく、HTML変換されたレイアウトで出力されました")
+                return True
+            
+            # 5. 最終フォールバック: pandasでシンプルなPDF出力を試行
             return self._export_sheet_to_pdf_pandas(excel_file_path, sheet_name, pdf_path)
             
         except Exception as e:
             self.logger.error(f"代替方法でのPDF出力エラー: {str(e)}")
             return False
     
+    def _export_sheet_to_pdf_native_excel(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """macOS上でExcelのネイティブPDF出力を使用（AppleScriptまたはLibreOffice）"""
+        try:
+            import platform
+            import subprocess
+            
+            if platform.system() != "Darwin":  # macOS以外では使用しない
+                return False
+            
+            # AppleScriptを使用してMicrosoft ExcelでPDF出力を試行
+            applescript = f'''
+            tell application "Microsoft Excel"
+                set workbook_path to "{excel_file_path}"
+                set pdf_path to "{pdf_path}"
+                set sheet_name to "{sheet_name}"
+                
+                open workbook_path
+                set active_workbook to active workbook
+                
+                -- シートを選択
+                tell active_workbook
+                    set target_sheet to worksheet sheet_name
+                    activate object target_sheet
+                    
+                    -- PDFとして出力
+                    save as pdf filename pdf_path
+                end tell
+                
+                close active_workbook saving no
+            end tell
+            '''
+            
+            # AppleScriptを実行
+            result = subprocess.run(
+                ['osascript', '-e', applescript],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0 and pdf_path.exists():
+                self.logger.info(f"AppleScript経由でPDF出力成功: {sheet_name} -> {pdf_path}")
+                return True
+            else:
+                self.logger.debug(f"AppleScript実行失敗: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.debug(f"ネイティブExcel PDF出力エラー: {str(e)}")
+            return False
+    
+    def _export_sheet_to_pdf_libreoffice_enhanced(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """LibreOfficeを使用したExcel印刷品質のPDF出力（改良版）"""
+        try:
+            import subprocess
+            import tempfile
+            import shutil
+            
+            # LibreOfficeが利用可能かチェック
+            if not self._check_libreoffice_available():
+                self.logger.debug("LibreOfficeが見つかりません")
+                return False
+            
+            # 一時ディレクトリで作業
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                
+                # 特定のシートのみを含む一時ファイルを作成
+                temp_excel_file = temp_path / f"temp_{sheet_name}.xlsx"
+                if not self._extract_single_sheet_to_file(excel_file_path, sheet_name, temp_excel_file):
+                    return False
+                
+                # 詳細なページ設定情報を取得
+                source_wb = load_workbook(excel_file_path)
+                page_settings = {}
+                if sheet_name in source_wb.sheetnames:
+                    source_sheet = source_wb[sheet_name]
+                    page_setup = source_sheet.page_setup
+                    
+                    page_settings = {
+                        'scale': page_setup.scale or 100,
+                        'paperSize': page_setup.paperSize,
+                        'orientation': page_setup.orientation,
+                        'fitToWidth': page_setup.fitToWidth,
+                        'fitToHeight': page_setup.fitToHeight,
+                        'leftMargin': page_setup.leftMargin,
+                        'rightMargin': page_setup.rightMargin,
+                        'topMargin': page_setup.topMargin,
+                        'bottomMargin': page_setup.bottomMargin,
+                        'headerMargin': page_setup.headerMargin,
+                        'footerMargin': page_setup.footerMargin
+                    }
+                    
+                    self.logger.info(f"シート '{sheet_name}' のページ設定:")
+                    self.logger.info(f"  印刷スケール: {page_settings['scale']}%")
+                    self.logger.info(f"  用紙サイズ: {page_settings['paperSize']}")
+                    self.logger.info(f"  向き: {page_settings['orientation']}")
+                    self.logger.info(f"  ページに合わせる: 幅={page_settings['fitToWidth']}, 高さ={page_settings['fitToHeight']}")
+                    
+                    # アリスト配車表の特別処理
+                    if "アリスト" in sheet_name or "LT" in sheet_name:
+                        self.logger.info("🚛 アリスト配車表を検出 - 特別なサイズ調整を適用")
+                else:
+                    page_settings = {'scale': 100}
+                source_wb.close()
+                
+                # LibreOfficeでPDF変換（改良版 - アリスト配車表対応）
+                cmd = [
+                    "soffice",
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", str(temp_path),
+                    # 印刷品質向上のオプション
+                    "--invisible",
+                    # 印刷設定を尊重
+                    "-p",  # 印刷向けオプション
+                    str(temp_excel_file)
+                ]
+                
+                # アリスト配車表の場合は追加の品質設定
+                if "アリスト" in sheet_name or "LT" in sheet_name:
+                    # PDF品質を最高に設定
+                    cmd.extend([
+                        "--print-to-file",
+                        "--printer-name", "PDF"
+                    ])
+                    self.logger.info("🚛 アリスト配車表用の高品質PDF設定を適用")
+                
+                self.logger.info(f"LibreOffice改良版でPDF変換実行: {sheet_name}")
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                
+                if result.returncode == 0:
+                    # 生成されたPDFファイルを目的の場所に移動
+                    temp_pdf = temp_path / f"temp_{sheet_name}.pdf"
+                    if temp_pdf.exists():
+                        shutil.move(str(temp_pdf), str(pdf_path))
+                        self.logger.info(f"✅ LibreOffice改良版でPDF出力成功: {sheet_name} -> {pdf_path}")
+                        return True
+                    else:
+                        self.logger.debug("LibreOffice改良版: 期待されるPDFファイルが生成されませんでした")
+                        return False
+                else:
+                    self.logger.debug(f"LibreOffice改良版PDF変換失敗: {result.stderr}")
+                    return False
+                    
+        except subprocess.TimeoutExpired:
+            self.logger.debug("LibreOffice改良版PDF変換がタイムアウトしました")
+            return False
+        except Exception as e:
+            self.logger.debug(f"LibreOffice改良版PDF出力エラー: {str(e)}")
+            return False
+
+    def _check_libreoffice_available(self) -> bool:
+        """LibreOfficeが利用可能かチェック"""
+        try:
+            import subprocess
+            import shutil
+            
+            # まずsofficeコマンドが存在するかチェック
+            if not shutil.which("soffice"):
+                self.logger.debug("sofficeコマンドが見つかりません")
+                return False
+            
+            result = subprocess.run(["soffice", "--version"], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            success = result.returncode == 0
+            self.logger.debug(f"LibreOffice利用可能性チェック: {success}, stdout: {result.stdout}")
+            return success
+            
+        except Exception as e:
+            self.logger.debug(f"LibreOffice利用可能性チェックエラー: {str(e)}")
+            return False
+    
+    def _export_sheet_to_pdf_aristot_optimized(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """アリスト配車表専用の最適化されたPDF出力"""
+        try:
+            self.logger.info(f"🚛 アリスト配車表専用PDF生成開始: {sheet_name}")
+            
+            # 1. xlwingsの直接印刷機能を最優先で試行
+            if self._export_sheet_to_pdf_xlwings_direct_print(excel_file_path, sheet_name, pdf_path):
+                self.logger.info("✅ アリスト配車表PDF生成成功（xlwings直接印刷）")
+                return True
+            
+            # 2. xlwingsの改良版を試行
+            if self._export_sheet_to_pdf_xlwings_enhanced(excel_file_path, sheet_name, pdf_path):
+                self.logger.info("✅ アリスト配車表PDF生成成功（xlwings改良版）")
+                return True
+            
+            # 3. 標準xlwingsを試行
+            if self._export_sheet_to_pdf_xlwings(excel_file_path, sheet_name, pdf_path):
+                self.logger.info("✅ アリスト配車表PDF生成成功（xlwings標準）")
+                return True
+            
+            # 4. LibreOffice改良版を試行
+            if self._export_sheet_to_pdf_libreoffice_enhanced(excel_file_path, sheet_name, pdf_path):
+                self.logger.info("✅ アリスト配車表PDF生成成功（LibreOffice改良版）")
+                return True
+            
+            # 5. 最終手段: 通常のLibreOffice
+            if self._export_sheet_to_pdf_libreoffice(excel_file_path, sheet_name, pdf_path):
+                self.logger.info("✅ アリスト配車表PDF生成成功（LibreOffice標準）")
+                return True
+            
+            self.logger.warning("⚠️ アリスト配車表のPDF生成に失敗しました")
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"アリスト配車表PDF生成エラー: {str(e)}")
+            return False
+    
+    def _export_sheet_to_pdf_xlwings_direct_print(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """xlwingsを使用してExcelの直接印刷機能でPDF出力（アリスト配車表専用）"""
+        try:
+            # 設定を確認してExcelアプリケーションの使用を判定
+            from ..core.config import Config
+            config = Config()
+            
+            # macOSなど、Excelアプリの使用が無効になっている場合でも、アリスト配車表は試行
+            if not config.enable_excel_app:
+                self.logger.info("🚛 Excel アプリケーションは通常無効ですが、アリスト配車表のため試行します")
+                # return False  # アリスト配車表の場合は強制的に試行
+            
+            import xlwings as xw
+            
+            self.logger.info(f"🚛 xlwings直接印刷でアリスト配車表PDF生成: {sheet_name}")
+            
+            # Excelアプリケーションを起動（表示）
+            app = xw.App(visible=False)
+            
+            try:
+                # ワークブックを開く
+                wb = app.books.open(str(excel_file_path))
+                
+                # 指定されたシートを取得
+                if sheet_name in [ws.name for ws in wb.sheets]:
+                    ws = wb.sheets[sheet_name]
+                    
+                    # 現在の印刷設定を確認・ログ出力
+                    self.logger.info("📋 現在のExcel印刷設定:")
+                    try:
+                        # ページ設定の詳細を取得
+                        page_setup = ws.page_setup
+                        self.logger.info(f"  印刷スケール: {page_setup.zoom}%")
+                        self.logger.info(f"  用紙サイズ: {page_setup.paper_size}")
+                        self.logger.info(f"  印刷の向き: {page_setup.orientation}")
+                        self.logger.info(f"  左マージン: {page_setup.left_margin}")
+                        self.logger.info(f"  右マージン: {page_setup.right_margin}")
+                        self.logger.info(f"  上マージン: {page_setup.top_margin}")
+                        self.logger.info(f"  下マージン: {page_setup.bottom_margin}")
+                        
+                        # アリスト配車表用の最適化設定を適用
+                        self.logger.info("🔧 アリスト配車表用の印刷設定を適用中...")
+                        
+                        # 印刷品質を最高に設定
+                        page_setup.print_quality = 600  # 高解像度
+                        
+                        # 中央揃えを有効化
+                        page_setup.center_horizontally = True
+                        page_setup.center_vertically = True
+                        
+                        # 印刷範囲を自動調整
+                        ws.page_setup.fit_to_pages_wide = 1
+                        ws.page_setup.fit_to_pages_tall = 1
+                        
+                        self.logger.info("✅ アリスト配車表用設定適用完了")
+                        
+                    except Exception as setup_error:
+                        self.logger.warning(f"印刷設定の調整中にエラー: {str(setup_error)}")
+                    
+                    # PDFとして出力（Excelの印刷機能を直接使用）
+                    ws.to_pdf(str(pdf_path))
+                    
+                    self.logger.info(f"✅ xlwings直接印刷でPDF出力完了: {sheet_name} -> {pdf_path}")
+                    return True
+                else:
+                    self.logger.warning(f"シート '{sheet_name}' が見つかりません")
+                    return False
+                    
+            finally:
+                # ワークブックとアプリケーションを閉じる
+                try:
+                    wb.close()
+                    app.quit()
+                except:
+                    pass
+                
+        except ImportError:
+            self.logger.debug("xlwingsがインストールされていません")
+            return False
+        except Exception as e:
+            self.logger.debug(f"xlwings直接印刷エラー: {str(e)}")
+            return False
+    
+    def _export_sheet_to_pdf_xlwings_enhanced(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """xlwingsを使用した改良版PDF出力（アリスト配車表専用）"""
+        try:
+            from ..core.config import Config
+            config = Config()
+            
+            if not config.enable_excel_app:
+                self.logger.info("🚛 Excel アプリケーションは通常無効ですが、アリスト配車表のため試行します")
+                # return False  # アリスト配車表の場合は強制的に試行
+            
+            import xlwings as xw
+            
+            self.logger.info(f"🚛 xlwings改良版でアリスト配車表PDF生成: {sheet_name}")
+            
+            # Excelアプリケーションを起動
+            app = xw.App(visible=False, add_book=False)
+            
+            try:
+                # ワークブックを開く
+                wb = app.books.open(str(excel_file_path))
+                
+                if sheet_name in [ws.name for ws in wb.sheets]:
+                    ws = wb.sheets[sheet_name]
+                    
+                    # アリスト配車表専用の詳細設定
+                    self.logger.info("🔧 アリスト配車表専用の詳細設定を適用...")
+                    
+                    # 印刷範囲を明示的に設定
+                    used_range = ws.used_range
+                    if used_range:
+                        self.logger.info(f"使用範囲: {used_range.address}")
+                        ws.page_setup.print_area = used_range.address
+                    
+                    # 改ページプレビューモードで最適化
+                    ws.api.Parent.ActiveWindow.View = 2  # xlPageBreakPreview
+                    
+                    # PDF出力
+                    ws.to_pdf(str(pdf_path))
+                    
+                    self.logger.info(f"✅ xlwings改良版でPDF出力完了: {sheet_name}")
+                    return True
+                else:
+                    self.logger.warning(f"シート '{sheet_name}' が見つかりません")
+                    return False
+                    
+            finally:
+                try:
+                    wb.close()
+                    app.quit()
+                except:
+                    pass
+                
+        except ImportError:
+            self.logger.debug("xlwingsがインストールされていません")
+            return False
+        except Exception as e:
+            self.logger.debug(f"xlwings改良版エラー: {str(e)}")
+            return False
+
+    def _extract_single_sheet_to_file(self, source_file: Path, sheet_name: str, target_file: Path) -> bool:
+        """指定したシートのみを新しいExcelファイルに抽出"""
+        try:
+            from openpyxl import load_workbook, Workbook
+            
+            # 元のワークブックを読み込み
+            source_wb = load_workbook(source_file)
+            
+            if sheet_name not in source_wb.sheetnames:
+                self.logger.warning(f"シート '{sheet_name}' が見つかりません")
+                return False
+            
+            # 新しいワークブックを作成
+            target_wb = Workbook()
+            target_wb.remove(target_wb.active)  # デフォルトシートを削除
+            
+            # 指定されたシートをコピー
+            source_sheet = source_wb[sheet_name]
+            target_sheet = target_wb.create_sheet(sheet_name)
+            
+            # セルデータ、スタイル、マージセル情報をコピー
+            for row in source_sheet.iter_rows():
+                for cell in row:
+                    target_cell = target_sheet.cell(row=cell.row, column=cell.column)
+                    target_cell.value = cell.value
+                    
+                    # スタイル情報をコピー
+                    if cell.has_style:
+                        target_cell.font = copy(cell.font)
+                        target_cell.border = copy(cell.border)
+                        target_cell.fill = copy(cell.fill)
+                        target_cell.number_format = cell.number_format
+                        target_cell.protection = copy(cell.protection)
+                        target_cell.alignment = copy(cell.alignment)
+            
+            # マージセル情報をコピー
+            for merged_range in source_sheet.merged_cells.ranges:
+                target_sheet.merge_cells(str(merged_range))
+            
+            # 列幅と行高をコピー
+            for col_letter, dimension in source_sheet.column_dimensions.items():
+                target_sheet.column_dimensions[col_letter].width = dimension.width
+            
+            for row_num, dimension in source_sheet.row_dimensions.items():
+                target_sheet.row_dimensions[row_num].height = dimension.height
+            
+            # 印刷設定をコピー（詳細ログ付き）
+            target_sheet.page_setup = copy(source_sheet.page_setup)
+            target_sheet.print_options = copy(source_sheet.print_options)
+            
+            # 印刷スケール情報をログ出力（デバッグ用）
+            original_scale = source_sheet.page_setup.scale
+            self.logger.info(f"シート '{sheet_name}' 印刷設定コピー:")
+            self.logger.info(f"  スケール: {original_scale}%")
+            self.logger.info(f"  用紙サイズ: {source_sheet.page_setup.paperSize}")
+            self.logger.info(f"  向き: {source_sheet.page_setup.orientation}")
+            self.logger.info(f"  ページに合わせる: 幅={source_sheet.page_setup.fitToWidth}, 高さ={source_sheet.page_setup.fitToHeight}")
+            
+            # アリスト配車表の特別なサイズ調整
+            if "アリスト" in sheet_name or "LT" in sheet_name:
+                self.logger.info("🚛 アリスト配車表の特別なサイズ調整を適用")
+                
+                # 元のスケール設定を保持しつつ、品質を向上
+                if original_scale and original_scale != 100:
+                    # 元のスケールを維持
+                    target_sheet.page_setup.scale = original_scale
+                    self.logger.info(f"  アリスト配車表のスケールを保持: {original_scale}%")
+                
+                # 印刷品質を向上させる設定
+                target_sheet.print_options.horizontalCentered = True
+                target_sheet.print_options.verticalCentered = True
+                
+                # マージンを微調整（必要に応じて）
+                if hasattr(target_sheet.page_setup, 'leftMargin'):
+                    original_left = source_sheet.page_setup.leftMargin
+                    original_right = source_sheet.page_setup.rightMargin
+                    self.logger.info(f"  マージン: 左={original_left}, 右={original_right}")
+            else:
+                # 他のシートは標準的なスケール調整
+                if original_scale and original_scale != 100:
+                    standardized_scale = 55
+                    target_sheet.page_setup.scale = standardized_scale
+                    self.logger.info(f"  標準スケールに調整: {original_scale}% -> {standardized_scale}%")
+                self.logger.info(f"シート '{sheet_name}' の印刷スケールを {original_scale}% から {standardized_scale}% に統一しました")
+            
+            # ファイルを保存
+            target_wb.save(target_file)
+            source_wb.close()
+            target_wb.close()
+            
+            self.logger.debug(f"シート抽出成功: {sheet_name} -> {target_file}")
+            return True
+            
+        except Exception as e:
+            self.logger.debug(f"シート抽出エラー: {str(e)}")
+            return False
+
+    def _export_sheet_to_pdf_native_excel_enhanced(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """改良版ネイティブExcel PDF出力（macOS AppleScript使用）"""
+        try:
+            import platform
+            import subprocess
+            
+            if platform.system() != "Darwin":  # macOS以外では使用しない
+                return False
+            
+            # Microsoft Excelがインストールされているかチェック
+            check_cmd = ['osascript', '-e', 'tell application "System Events" to (name of processes) contains "Microsoft Excel"']
+            try:
+                subprocess.run(check_cmd, check=True, capture_output=True, timeout=5)
+            except:
+                self.logger.debug("Microsoft Excel がインストールされていないか起動していません")
+                return False
+            
+            # AppleScriptを使用してExcelで高品質PDF出力
+            applescript = f'''
+            tell application "Microsoft Excel"
+                try
+                    set theWorkbook to open workbook workbook file name "{excel_file_path}"
+                    set theWorksheet to worksheet "{sheet_name}" of theWorkbook
+                    
+                    -- シートを選択してアクティブにする
+                    select theWorksheet
+                    
+                    -- PDF出力オプションを設定（高品質）
+                    export theWorksheet as PDF to file "{pdf_path}" with PDF quality best quality
+                    
+                    close theWorkbook saving no
+                    return "success"
+                on error errorMessage
+                    return "error: " & errorMessage
+                end try
+            end tell
+            '''
+            
+            result = subprocess.run(['osascript', '-e', applescript], 
+                                  capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0 and "success" in result.stdout:
+                if Path(pdf_path).exists():
+                    self.logger.info(f"✅ ネイティブExcel改良版でPDF出力成功: {sheet_name} -> {pdf_path}")
+                    return True
+            
+            self.logger.debug(f"ネイティブExcel改良版PDF出力失敗: {result.stderr}")
+            return False
+            
+        except Exception as e:
+            self.logger.debug(f"ネイティブExcel改良版PDF出力エラー: {str(e)}")
+            return False
+
+    def _export_sheet_to_pdf_libreoffice(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
+        """LibreOfficeを使用してExcelファイルをPDF出力"""
+        try:
+            import subprocess
+            import shutil
+            
+            # LibreOfficeがインストールされているかチェック
+            libreoffice_cmd = None
+            for cmd in ['soffice', 'libreoffice', '/Applications/LibreOffice.app/Contents/MacOS/soffice']:
+                if shutil.which(cmd) or Path(cmd).exists():
+                    libreoffice_cmd = cmd
+                    break
+            
+            if not libreoffice_cmd:
+                self.logger.debug("LibreOfficeが見つかりません")
+                return False
+            
+            # 一時的にワークブックをコピーして、対象シートのみをPDF出力
+            temp_excel_file = excel_file_path.with_suffix('.temp.xlsx')
+            
+            try:
+                # 対象シートのみを含む一時ファイルを作成
+                wb = load_workbook(excel_file_path)
+                
+                # 指定されたシート以外を削除
+                sheets_to_remove = [ws.title for ws in wb.worksheets if ws.title != sheet_name]
+                for sheet_title in sheets_to_remove:
+                    if sheet_title in wb.sheetnames:
+                        wb.remove(wb[sheet_title])
+                
+                if sheet_name not in wb.sheetnames:
+                    self.logger.warning(f"シート '{sheet_name}' が見つかりません")
+                    return False
+                
+                # 一時ファイルとして保存
+                wb.save(temp_excel_file)
+                wb.close()
+                
+                # LibreOfficeでPDF変換
+                cmd = [
+                    libreoffice_cmd,
+                    '--headless',
+                    '--convert-to', 'pdf',
+                    '--outdir', str(pdf_path.parent),
+                    str(temp_excel_file)
+                ]
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                
+                # 生成されたPDFファイルを正しい名前に移動
+                generated_pdf = pdf_path.parent / f"{temp_excel_file.stem}.pdf"
+                if generated_pdf.exists():
+                    generated_pdf.rename(pdf_path)
+                    self.logger.info(f"LibreOffice経由でPDF出力成功: {sheet_name} -> {pdf_path}")
+                    return True
+                else:
+                    self.logger.debug(f"LibreOffice PDF変換失敗: {result.stderr}")
+                    return False
+                    
+            finally:
+                # 一時ファイルを削除
+                if temp_excel_file.exists():
+                    temp_excel_file.unlink()
+                    
+        except Exception as e:
+            self.logger.debug(f"LibreOffice PDF出力エラー: {str(e)}")
+            return False
+
     def _export_sheet_to_pdf_weasyprint(self, excel_file_path: Path, sheet_name: str, pdf_path: Path) -> bool:
-        """weasprintを使用してPDF出力（高品質）"""
+        """weasprintを使用してPDF出力（Excelレイアウト再現強化版）"""
         try:
             from weasyprint import HTML, CSS
             
             # openpyxlでワークシートを読み込み（セル結合とスタイル情報を保持）
-            wb = load_workbook(excel_file_path, data_only=True)
+            wb = load_workbook(excel_file_path, data_only=False)  # data_only=Falseで数式も取得
             if sheet_name not in wb.sheetnames:
                 self.logger.warning(f"シート '{sheet_name}' が見つかりません")
                 return False
             
             ws = wb[sheet_name]
             
-            # HTMLテーブルを生成（より正確にセル結合を反映）
-            html_content = self._generate_html_from_worksheet(ws, sheet_name)
+            # 印刷設定を考慮してHTMLテーブルを生成
+            html_content = self._generate_excel_like_html_from_worksheet(ws, sheet_name)
             
-            # CSSスタイル定義
-            css_style = CSS(string="""
-                @page {
-                    size: A4 landscape;
-                    margin: 1cm;
-                }
-                body {
-                    font-family: Arial, "MS PGothic", sans-serif;
-                    font-size: 12px;
-                    margin: 0;
-                }
-                table {
-                    border-collapse: collapse;
-                    width: 100%;
-                    table-layout: fixed;
-                }
-                th, td {
-                    border: 1px solid #000;
-                    padding: 4px;
-                    text-align: left;
-                    vertical-align: top;
-                    word-wrap: break-word;
-                }
-                th {
-                    background-color: #f0f0f0;
-                    font-weight: bold;
-                }
-                .header-cell {
-                    background-color: #e6f3ff;
-                    font-weight: bold;
-                }
-                .title {
-                    font-size: 16px;
-                    font-weight: bold;
-                    text-align: center;
-                    margin-bottom: 10px;
-                }
-            """)
+            # 印刷スケールを取得してCSSに反映
+            scale = self._get_print_scale(ws)
+            css_style = CSS(string=self._get_excel_like_css_with_scale(scale))
             
             # HTMLからPDFを生成
             HTML(string=html_content).write_pdf(str(pdf_path), stylesheets=[css_style])
             
             wb.close()
-            self.logger.info(f"weasyprint でPDF出力成功: {sheet_name} -> {pdf_path}")
+            self.logger.info(f"weasyprint でPDF出力成功（Excel風レイアウト）: {sheet_name} -> {pdf_path}")
             return True
             
         except ImportError:
@@ -1029,6 +1560,314 @@ class ExcelProcessor:
         except Exception as e:
             self.logger.debug(f"weasyprint でのPDF出力エラー: {str(e)}")
             return False
+    
+    def _get_excel_like_css(self) -> str:
+        """Excel印刷レイアウトにより近いCSSスタイル"""
+        return """
+        @page {
+            size: A4 landscape;
+            margin: 0.75in 0.7in 0.75in 0.7in;  /* Excel標準マージン */
+        }
+        body {
+            font-family: "Calibri", "Arial", sans-serif;
+            font-size: 11pt;  /* Excel標準フォントサイズ */
+            margin: 0;
+            line-height: 1.15;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            font-family: inherit;
+        }
+        th, td {
+            border: 0.5pt solid #000000;  /* Excel標準線の太さ */
+            padding: 2pt 4pt;  /* Excel標準パディング */
+            text-align: left;
+            vertical-align: middle;
+            word-wrap: break-word;
+            overflow: hidden;
+            font-size: inherit;
+            line-height: 1.2;
+        }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .number { text-align: right; }
+        .header-bg { background-color: #D9E2F3; }  /* Excel標準ヘッダー色 */
+        .yellow-bg { background-color: #FFFF00; }
+        .blue-bg { background-color: #B4C6E7; }
+        .green-bg { background-color: #C6EFCE; }
+        .red-bg { background-color: #FFC7CE; }
+        """
+    
+    def _generate_excel_like_html_from_worksheet(self, worksheet, sheet_name: str) -> str:
+        """Excelの印刷レイアウトにより近いHTMLテーブルを生成（印刷設定考慮）"""
+        try:
+            html_rows = []
+            
+            # 印刷範囲を取得
+            print_area_range = self._get_print_area(worksheet)
+            if print_area_range:
+                min_row, min_col, max_row, max_col = print_area_range
+                self.logger.info(f"印刷範囲使用: {min_row}行目〜{max_row}行目, {min_col}列目〜{max_col}列目")
+            else:
+                # 印刷範囲が設定されていない場合は実際のデータ範囲を使用
+                data_range = self._get_actual_data_range(worksheet)
+                min_row, min_col, max_row, max_col = data_range
+                self.logger.info(f"データ範囲使用: {min_row}行目〜{max_row}行目, {min_col}列目〜{max_col}列目")
+            
+            # マージされたセル範囲を取得
+            merged_ranges = list(worksheet.merged_cells.ranges)
+            
+            for row in range(1, max_row + 1):
+                html_cells = []
+                
+                for col in range(1, max_col + 1):
+                    cell = worksheet.cell(row=row, column=col)
+                    
+                    # マージされたセルの処理
+                    skip_cell = False
+                    rowspan = 1
+                    colspan = 1
+                    
+                    for merged_range in merged_ranges:
+                        if cell.coordinate in merged_range:
+                            # マージされたセルの左上セル以外はスキップ
+                            if cell.row != merged_range.min_row or cell.column != merged_range.min_col:
+                                skip_cell = True
+                                break
+                            else:
+                                # 左上セルの場合はrowspanとcolspanを設定
+                                rowspan = merged_range.max_row - merged_range.min_row + 1
+                                colspan = merged_range.max_col - merged_range.min_col + 1
+                    
+                    if skip_cell:
+                        continue
+                    
+                    # セルの値を取得（計算された値）
+                    cell_value = cell.value if cell.value is not None else ""
+                    if isinstance(cell_value, (int, float)) and cell_value == 0:
+                        cell_value_str = ""  # ゼロは空欄として表示（Excel風）
+                    else:
+                        cell_value_str = str(cell_value).strip()
+                    
+                    # セルのスタイルを分析してCSSクラスを決定
+                    cell_classes = self._get_cell_css_classes(cell)
+                    
+                    # HTMLセルを生成
+                    attrs = []
+                    if rowspan > 1:
+                        attrs.append(f'rowspan="{rowspan}"')
+                    if colspan > 1:
+                        attrs.append(f'colspan="{colspan}"')
+                    if cell_classes:
+                        attrs.append(f'class="{cell_classes}"')
+                    
+                    attrs_str = ' ' + ' '.join(attrs) if attrs else ''
+                    html_cells.append(f"<td{attrs_str}>{cell_value_str}</td>")
+                
+                if html_cells:
+                    html_rows.append(f"<tr>{''.join(html_cells)}</tr>")
+            
+            # HTMLドキュメントを構成
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>{sheet_name}</title>
+            </head>
+            <body>
+                <table>
+                    {''.join(html_rows)}
+                </table>
+            </body>
+            </html>
+            """
+            
+            return html_content
+            
+        except Exception as e:
+            self.logger.error(f"Excel風HTML生成エラー: {str(e)}")
+            # フォールバック: 従来のHTML生成
+            return self._generate_html_from_worksheet(worksheet, sheet_name)
+    
+    def _get_cell_css_classes(self, cell) -> str:
+        """セルのスタイルからCSSクラスを決定"""
+        classes = []
+        
+        try:
+            # テキストアライメント
+            if hasattr(cell, 'alignment') and cell.alignment:
+                if cell.alignment.horizontal == 'center':
+                    classes.append('center')
+                elif cell.alignment.horizontal == 'right':
+                    classes.append('right')
+            
+            # フォント設定
+            if hasattr(cell, 'font') and cell.font:
+                if cell.font.bold:
+                    classes.append('bold')
+            
+            # 背景色
+            if hasattr(cell, 'fill') and cell.fill and hasattr(cell.fill, 'start_color'):
+                try:
+                    color_rgb = cell.fill.start_color.rgb
+                    if color_rgb:
+                        # RGBオブジェクトまたは文字列として処理
+                        if hasattr(color_rgb, 'upper'):  # 文字列の場合
+                            color_str = color_rgb.upper()
+                        else:  # RGBオブジェクトの場合
+                            color_str = str(color_rgb).upper()
+                        
+                        # 黒背景の特別処理
+                        if color_str.startswith('000000') or color_str == '000000':
+                            classes.append('black-bg')
+                        elif color_str.startswith('FFFF'):  # 黄色系
+                            classes.append('yellow-bg')
+                        elif color_str.startswith('D9E2') or color_str.startswith('B4C6'):  # 青系
+                            classes.append('blue-bg')
+                        elif color_str.startswith('C6EF'):  # 緑系
+                            classes.append('green-bg')
+                        elif color_str.startswith('FFC7'):  # 赤系
+                            classes.append('red-bg')
+                        else:
+                            classes.append('header-bg')  # デフォルトヘッダー色
+                except Exception as color_error:
+                    self.logger.debug(f"背景色解析エラー: {str(color_error)}")
+                    # フォールバック: パターンフィルの種類で判定
+                    if cell.fill.fill_type and cell.fill.fill_type != 'none':
+                        classes.append('header-bg')
+            
+            # 数値データの場合は右寄せ
+            if isinstance(cell.value, (int, float)) and cell.value != 0:
+                if 'center' not in classes and 'right' not in classes:
+                    classes.append('number')
+            
+        except Exception as e:
+            self.logger.debug(f"セルスタイル解析エラー: {str(e)}")
+        
+        return ' '.join(classes)
+    
+    def _get_print_area(self, worksheet):
+        """印刷範囲を取得"""
+        try:
+            if hasattr(worksheet, 'print_area') and worksheet.print_area:
+                # 印刷範囲が設定されている場合
+                import openpyxl.utils
+                from openpyxl.utils import range_boundaries
+                
+                # 印刷範囲文字列をパース（例: "Sheet1!$A$1:$M$39"）
+                print_area = worksheet.print_area
+                if '!' in print_area:
+                    range_part = print_area.split('!')[-1]
+                else:
+                    range_part = print_area
+                
+                # $ マークを除去
+                range_part = range_part.replace('$', '')
+                
+                # 範囲を解析
+                min_col, min_row, max_col, max_row = range_boundaries(range_part)
+                self.logger.debug(f"印刷範囲解析: {min_row}-{max_row}行, {min_col}-{max_col}列")
+                return (min_row, min_col, max_row, max_col)
+            
+        except Exception as e:
+            self.logger.debug(f"印刷範囲取得エラー: {str(e)}")
+        
+        return None
+    
+    def _get_actual_data_range(self, worksheet):
+        """実際のデータ範囲を取得"""
+        try:
+            max_row = 0
+            max_col = 0
+            min_row = float('inf')
+            min_col = float('inf')
+            
+            # 実際にデータが入っているセルを検索
+            for row in range(1, min(worksheet.max_row + 1, 100)):
+                for col in range(1, min(worksheet.max_column + 1, 100)):
+                    cell = worksheet.cell(row=row, column=col)
+                    if cell.value is not None and str(cell.value).strip():
+                        max_row = max(max_row, row)
+                        max_col = max(max_col, col)
+                        min_row = min(min_row, row)
+                        min_col = min(min_col, col)
+            
+            # データが見つからない場合のデフォルト
+            if min_row == float('inf'):
+                min_row = 1
+                min_col = 1
+                max_row = min(worksheet.max_row, 50)
+                max_col = min(worksheet.max_column, 30)
+            
+            return (min_row, min_col, max_row, max_col)
+            
+        except Exception as e:
+            self.logger.error(f"データ範囲取得エラー: {str(e)}")
+            return (1, 1, 50, 30)  # フォールバック
+    
+    def _get_print_scale(self, worksheet):
+        """印刷スケールを取得"""
+        try:
+            if hasattr(worksheet, 'page_setup') and hasattr(worksheet.page_setup, 'scale'):
+                scale = worksheet.page_setup.scale
+                if scale and scale > 0:
+                    return scale
+        except Exception as e:
+            self.logger.debug(f"印刷スケール取得エラー: {str(e)}")
+        
+        return 100  # デフォルト100%
+    
+    def _get_excel_like_css_with_scale(self, scale: int) -> str:
+        """印刷スケールを考慮したExcel風CSSスタイル"""
+        # スケールに応じてフォントサイズとセルサイズを調整
+        base_font_size = 11 * (scale / 100.0)  # スケールに応じてフォントサイズ調整
+        cell_padding = max(1, int(4 * (scale / 100.0)))  # パディングも調整
+        
+        return f"""
+        @page {{
+            size: A4 landscape;
+            margin: 0.5in 0.5in 0.5in 0.5in;
+        }}
+        body {{
+            font-family: "Calibri", "Arial", sans-serif;
+            font-size: {base_font_size:.1f}pt;
+            margin: 0;
+            line-height: 1.1;
+            transform: scale({scale / 100.0});
+            transform-origin: top left;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            font-family: inherit;
+        }}
+        th, td {{
+            border: 0.5pt solid #000000;
+            padding: {cell_padding}pt {cell_padding}pt;
+            text-align: left;
+            vertical-align: middle;
+            word-wrap: break-word;
+            overflow: hidden;
+            font-size: inherit;
+            line-height: 1.1;
+            white-space: nowrap;
+        }}
+        .center {{ text-align: center; }}
+        .right {{ text-align: right; }}
+        .bold {{ font-weight: bold; }}
+        .number {{ text-align: right; }}
+        .header-bg {{ background-color: #D9E2F3; }}
+        .yellow-bg {{ background-color: #FFFF00; }}
+        .blue-bg {{ background-color: #B4C6E7; }}
+        .green-bg {{ background-color: #C6EFCE; }}
+        .red-bg {{ background-color: #FFC7CE; }}
+        .black-bg {{ background-color: #000000; color: #FFFFFF; }}
+        """
     
     def _generate_html_from_worksheet(self, worksheet, sheet_name: str) -> str:
         """ワークシートからHTMLテーブルを生成（セル結合を考慮）"""

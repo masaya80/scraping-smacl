@@ -7,26 +7,16 @@ CSV データ抽出モジュール
 import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Optional
-from dataclasses import dataclass
 from datetime import datetime
 import glob
 
-from utils.logger import Logger
-from data.pdf_extractor import DeliveryDocument, DeliveryItem
+from ..core.logger import Logger
+from ..core.models import DeliveryDocument, DeliveryItem, OrderItem
 
 try:
     import chardet
 except ImportError:
     chardet = None
-
-
-@dataclass
-class OrderItem:
-    """受注アイテムのデータクラス（内部使用用）"""
-    item_code: str = ""
-    quantity: int = 0
-    extracted_date: str = ""
-    source_file: str = ""
 
 
 class CSVExtractor:
@@ -281,10 +271,19 @@ class CSVExtractor:
             return None
     
     def find_today_csv_file(self, directory: Path) -> Optional[Path]:
-        """今日の日付のCSVファイルを検索"""
+        """今日の日付の最も新しい伝票CSVファイルを検索
+        
+        Args:
+            directory: 検索対象のディレクトリ
+            
+        Returns:
+            今日の日付で最も新しいCSVファイルのパス、見つからない場合はNone
+        """
         try:
             today_str = datetime.now().strftime('%Y%m%d')
             pattern = f"受注伝票_{today_str}*.csv"
+            
+            self.logger.info(f"今日の日付({today_str})の最新伝票を検索中: {pattern}")
             
             csv_files = list(directory.glob(pattern))
             
@@ -292,16 +291,17 @@ class CSVExtractor:
                 self.logger.warning(f"今日の日付のCSVファイルが見つかりません: {pattern}")
                 return None
             
-            # 時刻が最新のファイルを選択
+            # ファイル名の時刻部分で並び替え（最新順）
+            # ファイル名例: 受注伝票_20250815123456.csv
             csv_files.sort(key=lambda x: x.stem, reverse=True)
             
             latest_file = csv_files[0]
-            self.logger.info(f"今日の日付のCSVファイルを発見: {latest_file}")
+            self.logger.info(f"今日の日付の最も新しい伝票を発見: {latest_file}")
             
             return latest_file
             
         except Exception as e:
-            self.logger.error(f"今日のCSVファイル検索エラー: {str(e)}")
+            self.logger.error(f"今日の最新CSVファイル検索エラー: {str(e)}")
             return None
     
     def extract_multiple_csv_files(self, directory: Path, pattern: str = "受注伝票_*.csv") -> List[DeliveryDocument]:

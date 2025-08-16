@@ -67,7 +67,7 @@ class Logger:
         if name not in self._loggers:
             # 初回設定時にログ設定を自動で行う
             if not self._configured:
-                from config.settings import Config
+                from .config import Config
                 config = Config()
                 self.configure(
                     log_dir=config.logs_dir,
