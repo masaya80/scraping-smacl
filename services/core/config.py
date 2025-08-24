@@ -122,10 +122,11 @@ class Config:
         """本番用LINE設定"""
         # 新しい本番用設定（環境変数から取得、デフォルト値は本番用）
         self.line_channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 
-            'IVEs7s1v5o2XdR9dCT/Q101NpmsF0FvK0MxyJ9pNTqKZAYRq7mTmlghp/2cTo+vhWA5S280hrT7LZQ9HEFZ5Eu6dDtKgKywE+pUnE6zW/5Z5N148JR9IOHYA4pS8aeN4GGgrwbFNrnWqcL2eoaIhuAdB04t89/1O/w1cDnyilFU=')
-        self.line_channel_secret = os.getenv('LINE_CHANNEL_SECRET', '799dfc63eb76d45f6443f4be49833f47')
-        self.line_channel_id = os.getenv('LINE_CHANNEL_ID', '2007929536')
-        self.line_group_id = os.getenv('LINE_GROUP_ID', 'Ca23b038e0208192c6efe1640d471e977')
+            'CoRdOqrzF2MLqc/WoFIgak/6aGmFMrP1jUTUoAMiEEXBOQ4XP7BZevrsnx7rDNV2i3tdMrxOvm1AIqygfA5fr+eKVajvndjTcxtOOnI4NOTQfJKvjLJ7fXxmcpn6G07mJ5BVNcU2c6uP68H9lJDeswdB04t89/1O/w1cDnyilFU=')
+        self.line_channel_secret = os.getenv('LINE_CHANNEL_SECRET', '25d64f941d05535214a0462185672e91')
+        self.line_channel_id = os.getenv('LINE_CHANNEL_ID', '2007929494')
+        # self.line_group_id = os.getenv('LINE_GROUP_ID', 'Cd9d27348df3850582d0d31ea93e5afd7') #本番用
+        self.line_group_id = os.getenv('LINE_GROUP_ID', 'Cc3557d7321fe7785abc86d8e2e6de168') #テスト用
     
     def _configure_common_settings(self):
         """共通設定（test_modeに関係なく適用）"""
