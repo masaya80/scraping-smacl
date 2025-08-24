@@ -1,8 +1,9 @@
 # macOS
 .DS_Store
 DS_Store
-.DS_Store
-DS_Store
+._*
+**/.DS_Store
+**/._*
 
 # Python
 __pycache__/
@@ -33,6 +34,10 @@ ENV/
 .venv/
 .env
 
+# Virtual environment directories
+*/.venv/
+*/venv/
+
 # IDE
 .vscode/
 .idea/
@@ -50,3 +55,19 @@ config.local.py
 # Temporary files
 *.tmp
 *.temp
+
+# Credentials and sensitive files
+credentials.json
+token.json
+
+# Output and generated files
+output/
+downloads/
+logs/
+
+# Test files (if any remain)
+test_*.py
+*_test.py
+
+# LINE setup tools output
+line_setup_tools/webhook_*.log

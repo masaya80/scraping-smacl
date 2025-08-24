@@ -24,9 +24,10 @@ from ..core.models import DeliveryDocument, DeliveryItem, MasterItem, Validation
 class ExcelProcessor:
     """Excel 処理クラス"""
     
-    def __init__(self):
+    def __init__(self, config=None):
         self.logger = Logger(__name__)
         self.master_data: Dict[str, MasterItem] = {}
+        self.config = config
         
         if not openpyxl:
             raise ImportError("openpyxl がインストールされていません。pip install openpyxl を実行してください。")
@@ -66,7 +67,6 @@ class ExcelProcessor:
                 # 商品コードをキーとして保存（A列の値）
                 if item.item_code:
                     self.master_data[item.item_code] = item
-                    self.logger.debug(f"マスタ登録: コード={item.item_code}, 商品名={item.item_name}, 倉庫={item.warehouse}")
             
             self.logger.info(f"マスタデータ読み込み完了: {len(self.master_data)} 件")
             return True
@@ -780,13 +780,11 @@ class ExcelProcessor:
                     top_left_cell = worksheet.cell(merged_range.min_row, merged_range.min_col)
                     top_left_cell.value = value
                     merged_cell_found = True
-                    self.logger.debug(f"マージセル対応: {cell_coordinate} -> 左上セル {top_left_cell.coordinate} に値={value} を設定")
                     break
             
             # 通常のセル（マージされていない）の場合
             if not merged_cell_found:
                 cell.value = value
-                self.logger.debug(f"通常セル: {cell_coordinate} に値={value} を設定")
             
         except Exception as e:
             self.logger.warning(f"セル挿入エラー (行{row}, 列{column}): {str(e)}")
@@ -796,7 +794,6 @@ class ExcelProcessor:
                 from openpyxl.utils import get_column_letter
                 col_letter = get_column_letter(column)
                 worksheet[f"{col_letter}{row}"] = value
-                self.logger.debug(f"フォールバック成功: {col_letter}{row} = {value}")
             except Exception as e2:
                 self.logger.error(f"セル挿入完全失敗 (行{row}, 列{column}): {str(e2)}")
     
@@ -844,8 +841,18 @@ class ExcelProcessor:
         pdf_files = []
         
         try:
-            from ..core.config import Config
-            config = Config()
+            # Configがインスタンス変数として利用可能か確認
+            if self.config:
+                config = self.config
+                # 日付別ディレクトリを使用
+                today_str = datetime.now().strftime(config.date_folder_format)
+                output_dir = config.get_dated_output_dir(today_str)
+            else:
+                # フォールバック: 新しいConfigインスタンスを作成
+                from ..core.config import Config
+                config = Config()
+                output_dir = config.output_dir
+                
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             
             for sheet_name in sheet_names:
@@ -853,7 +860,7 @@ class ExcelProcessor:
                     # PDFファイル名を生成
                     safe_sheet_name = self._sanitize_filename(sheet_name)
                     pdf_filename = f"{safe_sheet_name}_{timestamp}.pdf"
-                    pdf_path = config.output_dir / pdf_filename
+                    pdf_path = output_dir / pdf_filename
                     
                     # アリスト配車表の場合は専用メソッドを使用
                     if "アリスト" in sheet_name or "LT" in sheet_name:

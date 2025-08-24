@@ -94,7 +94,6 @@ class CSVExtractor:
                 delivery_item.notes = f"CSV抽出元: {csv_path.name}"
                 
                 document.items.append(delivery_item)
-                self.logger.debug(f"商品コード: {item_code}, 数量: {quantity}, 倉庫: {warehouse}")
             
             self.logger.info(f"CSV抽出完了: {len(document.items)} 品目（ユニーク）を抽出")
             return [document] if document.items else []

@@ -1,0 +1,1312 @@
+<html class="" lang="ja">
+
+<head id="ctl00_Head1">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <title>
+        受注受信一覧
+    </title>
+    <link rel="stylesheet" href="../../css/base.css" type="text/css">
+    <link rel="stylesheet" href="../../css/common.css" type="text/css">
+    <link rel="stylesheet" href="../../css/denpyo.css" type="text/css">
+    <link rel="stylesheet" href="../../css/style-sheet.css" type="text/css">
+    <link type="text/css" rel="stylesheet" href="../../css/custom-theme/jquery-ui-1.9.2.custom.css">
+    <script src="../../js/common_durty_check.js" type="text/javascript" charset="Shift_JIS"></script>
+    <script src="../../js/common_font_strike.js" type="text/javascript"></script>
+    <script src="../../js/common_entertab.js" type="text/javascript"></script>
+    <script src="../../js/common_functionkey.js" type="text/javascript"></script>
+    <script src="../../js/common_util.js" type="text/javascript"></script>
+    <script src="../../js/common_message.js" type="text/javascript"></script>
+    <script src="../../js/common_screen_util.js" type="text/javascript"></script>
+    <script src="../../js/common_item_check.js" type="text/javascript"></script>
+    <script src="../../js/common_relational_check.js" type="text/javascript"></script>
+    <script src="../../js/common_window.js" type="text/javascript"></script>
+    <script src="../../js/common.js" type="text/javascript" charset="Shift_JIS"></script>
+    <script src="../../js/common_money_format.js" type="text/javascript"></script>
+    <script src="../../js/ord_auto_calc.js?ver=20220526" type="text/javascript"></script>
+    <script src="../../js/shh_auto_calc.js" type="text/javascript"></script>
+    <script src="../../js/msg_auto.js" type="text/javascript"></script>
+    <script src="../../js/mst_auto.js" type="text/javascript"></script>
+    <script src="../../js/item_search.js" type="text/javascript"></script>
+    <script src="../../js/sellercd_search.js" type="text/javascript"></script>
+    <script src="../../js/rcvcd_search.js" type="text/javascript"></script>
+    <script src="../../js/shipcd_search.js" type="text/javascript"></script>
+    <script src="../../js/itemcdorder_search.js" type="text/javascript"></script>
+    <script src="../../js/code_change.js" type="text/javascript"></script>
+    <script src="../../js/parent_screen_control1.js" type="text/javascript"></script>
+    <script type="text/javascript" src="../../js/jquery-1.8.0.min.js"></script>
+    <script type="text/javascript" src="../../js/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="../../js/jquery-ui.js"></script>
+    <script type="text/javascript" src="../../js/jquery.cookie.js"></script>
+    <script type="text/javascript" src="../../js/respond.min.js"></script>
+    <!--	<script type="text/javascript" src="../../js/jquery.ah-placeholder.js"></script>
+-->
+    <!--[if lt IE 9]>
+	<script type="text/javascript" src="../../js/html5shiv.js"></script>
+	<![endif]-->
+    <!-- jquery.datePicker.js -->
+    <script type="text/javascript" src="../../js/jquery-ui-1.8.23.custom.min.js"></script>
+    <script type="text/javascript" src="../../js/jquery-ui-1.9.2.custom.min.js"></script>
+    <script type="text/javascript" src="../../js/jquery.ui.datepicker-ja.js"></script>
+    <script type="text/javascript">
+        function CurrentDateText() {
+            return '20250825';
+        }
+    </script>
+    <script type="text/javascript">
+        // クリック判定フラグ
+        // falseの場合は、クリックされていないを意味する
+        var isSubmitted = false;
+    </script>
+    <script src="../../js/msg_upload.js" type="text/javascript"></script>
+</head>
+
+<body onkeydown="return bodyOnKey(event.keyCode);" onhelp="return false;" onload="bodyOnLoad();" id="mainMaster"
+    style="">
+    <div id="disableDiv" style="background-color:White;
+        filter:alpha(opacity=50);
+        -moz-opacity:0.5;
+        opacity:0.5;
+        display:none;
+        position:absolute;
+        z-index:100;
+        ">
+        <p style="font-weight:bold;FONT-SIZE: 24px;text-align:center;">検索画面表示中です。</p>
+    </div>
+    <div class="container" id="containerDiv">
+        <div class="layout">
+
+            <div class="baseScreenHight">
+                <form name="aspnetForm" method="post" action="./EDS001VORD0000.aspx" id="aspnetForm"
+                    onsubmit="return formSubmit();" autocomplete="off">
+                    <div>
+                        <input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="">
+                        <input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="">
+                        <input type="hidden" name="__LASTFOCUS" id="__LASTFOCUS" value="">
+                        <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE"
+                            value="/wEPDwULLTIwOTc3NzAxMjYPFgIeE1ZhbGlkYXRlUmVxdWVzdE1vZGUCARYCZg9kFgICAw8WAh4MYXV0b2NvbXBsZXRlBQNvZmYWQAIBDxYCHgVWYWx1ZQUUODg3Q0ExREY0NDVBODI1MTI2RTFkAgMPFgIfAgUBMGQCBQ8PFgIeCEltYWdlVXJsBRV+L2ltYWdlL0kyNlNfbG9nby5qcGdkZAIPDw9kFgIeB09uQ2xpY2sFOXJldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5IZWxwTGlua0J1dHRvbicpO2QCEQ8PZBYCHwQFO3JldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5Mb2dvdXRMaW5rQnV0dG9uJyk7ZAIVDxYCHgVjbGFzcwURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVOcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcxJyk7ZAIXDxYCHwUFEWJhc2VUYWJOb1NlbGVjdGVkFgICAQ8PZBYCHwQFT3JldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5UYWJsaW5rJywgJ2N0bDAwX2V4ZWNQYXJhbWV0ZXInLCAnMjEnKTtkAhkPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICczMScpO2QCGw8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU5yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzInKTtkAh0PFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcxNScpO2QCHw8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU9yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzEwJyk7ZAIhDxYCHwUFD2Jhc2VUYWJTZWxlY3RlZBYCAgEPD2QWAh8EBU5yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzMnKTtkAiMPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcxMScpO2QCJQ8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU5yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzQnKTtkAicPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVOcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICc1Jyk7ZAIpDxYCHwUFEWJhc2VUYWJOb1NlbGVjdGVkFgICAQ8PZBYCHwQFTnJldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5UYWJsaW5rJywgJ2N0bDAwX2V4ZWNQYXJhbWV0ZXInLCAnNicpO2QCKw8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU5yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzcnKTtkAi0PFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcxMicpO2QCLw8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU5yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzgnKTtkAjEPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcxMycpO2QCMw8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU9yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzE0Jyk7ZAI1DxYCHwUFEWJhc2VUYWJOb1NlbGVjdGVkFgICAQ8PZBYCHwQFT3JldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5UYWJsaW5rJywgJ2N0bDAwX2V4ZWNQYXJhbWV0ZXInLCAnMTYnKTtkAjcPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVOcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICc5Jyk7ZAI5DxYCHwUFEWJhc2VUYWJOb1NlbGVjdGVkFgICAQ8PZBYCHwQFT3JldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5UYWJsaW5rJywgJ2N0bDAwX2V4ZWNQYXJhbWV0ZXInLCAnMjInKTtkAjsPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcyMycpO2QCPQ8WAh8FBRFiYXNlVGFiTm9TZWxlY3RlZBYCAgEPD2QWAh8EBU9yZXR1cm4gQ29uZmlybURlc3Ryb3lJbnB1dCgnY3RsMDBfSGlkZGVuVGFibGluaycsICdjdGwwMF9leGVjUGFyYW1ldGVyJywgJzI0Jyk7ZAI/DxYCHwUFEWJhc2VUYWJOb1NlbGVjdGVkFgICAQ8PZBYCHwQFT3JldHVybiBDb25maXJtRGVzdHJveUlucHV0KCdjdGwwMF9IaWRkZW5UYWJsaW5rJywgJ2N0bDAwX2V4ZWNQYXJhbWV0ZXInLCAnMjUnKTtkAkEPFgIfBQURYmFzZVRhYk5vU2VsZWN0ZWQWAgIBDw9kFgIfBAVPcmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlblRhYmxpbmsnLCAnY3RsMDBfZXhlY1BhcmFtZXRlcicsICcyNicpO2QCQw9kFgJmDw9kFgIfBAU5cmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlbkVEUzAwMVZUT1AwMDAwJyk7ZAJFDw9kFgIfBAU1cmV0dXJuIENvbmZpcm1EZXN0cm95SW5wdXQoJ2N0bDAwX0hpZGRlbkJhY2tCdXR0b24nKTtkAkkPFgIfAgUBMGQCSw9kFggCAQ88KwAKAQAPFgYeCkRhdGFNZW1iZXIFEU9yZGVySW5mRGF0YVRhYmxlHgtfIURhdGFCb3VuZGceC18hSXRlbUNvdW50AgFkFgJmD2QWBmYPDxYCHgdWaXNpYmxlaGRkAgEPZBYCZg9kFhYCAQ8PZBYCHgZPbkJsdXIFGWl0ZW1DaGVjayh0aGlzLCAnJywgJy8nKTtkAgMPD2QWAh8KBRlpdGVtQ2hlY2sodGhpcywgJycsICcvJyk7ZAILDw9kFgIfCgUZaXRlbUNoZWNrKHRoaXMsICcnLCAnLycpO2QCDQ8PZBYCHwoFGWl0ZW1DaGVjayh0aGlzLCAnJywgJy8nKTtkAg8PEA8WCB8HZx8GBQdNU1RfQ1RHHg1EYXRhVGV4dEZpZWxkBQRURVhUHg5EYXRhVmFsdWVGaWVsZAUFVkFMVUVkEBULBuWFqOOBpgowMDEg6a6u6a2aDTAwMyDjg57jgrDjg60KMDA0IOWvv+WPuAowMDUg6a2a5Y21CjAwNiDprq3psZIKMDA3IOWhqeW5sgowMDgg54+N5ZGzCjAwOSDmg6Poj5wKMDEwIOizh+adkA0wOTAg6LKv6JS15ZOBFQsAAzAwMQMwMDMDMDA0AzAwNQMwMDYDMDA3AzAwOAMwMDkDMDEwAzA5MBQrAwtnZ2dnZ2dnZ2dnZxYBZmQCEQ8QDxYIHwdnHwYFBEExNzYfCwUEVEVYVB8MBQVWQUxVRWQQFQQG5YWo44GmBzAxIDHkvr8HMDIgMuS+vwcwMyAz5L6/FQQAAjAxAjAyAjAzFCsDBGdnZ2cWAWZkAhMPEA8WCB8HZx8GBQRBMTgyHwsFBFRFWFQfDAUFVkFMVUVkEBUGBuWFqOOBpgkwMSDluLjmuKkMMDIg44OB44Or44OJCTAzIOWGt+iUtQkwNCDlhrflh40MMDUg6LaF5Ya35YeNFQYAAjAxAjAyAjAzAjA0AjA1FCsDBmdnZ2dnZxYBZmQCFQ8QDxYIHwdnHwYFBEIwMzcfCwUEVEVYVB8MBQVWQUxVRWQQFQQG5YWo44GmDO+8tO+8j++8oeWeiwzpm4boqIjooajlnosM55m65rOo5pu45Z6LFQQAAjAxAjAyAjAzFCsDBGdnZ2cWAWZkAhcPEA8WCB8HZx8GBQRCMDA1HwsFBFRFWFQfDAUFVkFMVUVkEBUDBuWFqOOBpg/mnKrnorrlrprjgYLjgooJ56K65a6a5riIFQMAATABMRQrAwNnZ2cWAWZkAhkPEA8WCB8HZx8GBQRCMDA2HwsFBFRFWFQfDAUFVkFMVUVkEBUDBuWFqOOBpg/mnKrljbDliLfjgYLjgooJ5Y2w5Yi35riIFQMAATABMRQrAwNnZ2cWAWZkAhsPEA8WCB8HZx8GBQRCMDAxHwsFBFRFWFQfDAUFVkFMVUVkEBUDBuWFqOOBpgnmnKrlj4LnhacJ5Y+C54Wn5riIFQMAATABMRQrAwNnZ2cWAWZkAgIPDxYCHwloZGQCAw9kFgZmDw8WAh4EVGV4dAUBMWRkAgEPDxYCHw0FAThkZAICDw8WAh8NBQE4ZGQCBQ9kFigCAQ8PFgQeC0NvbW1hbmROYW1lBRBQYWdpbmdPZkdyaWRWaWV3Hg9Db21tYW5kQXJndW1lbnQFAi0xZGQCBQ8PFg4eB0VuYWJsZWRoHwloHw0FATEeBF8hU0ICgBAfDgUQUGFnaW5nT2ZHcmlkVmlldx4JRm9udF9Cb2xkZx8PBQEwZGQCBw8PFgIfCWhkZAIJDw8WDB8NBQEyHw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBMR8SaB8RAoAQHwloZGQCCw8PFgIfCWhkZAINDw8WDB8NBQEzHw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBMh8SaB8RAoAQHwloZGQCDw8PFgIfCWhkZAIRDw8WDB8NBQE0Hw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBMx8SaB8RAoAQHwloZGQCEw8PFgIfCWhkZAIVDw8WDB8NBQE1Hw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBNB8SaB8RAoAQHwloZGQCFw8PFgIfCWhkZAIZDw8WDB8NBQE2Hw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBNR8SaB8RAoAQHwloZGQCGw8PFgIfCWhkZAIdDw8WDB8NBQE3Hw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBNh8SaB8RAoAQHwloZGQCHw8PFgIfCWhkZAIhDw8WDB8NBQE4Hw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBNx8SaB8RAoAQHwloZGQCIw8PFgIfCWhkZAIlDw8WCh8NBQE5Hw4FEFBhZ2luZ09mR3JpZFZpZXcfDwUBOB8SaB8RAoAQZGQCKQ8PFgofDQUCMTAfDgUQUGFnaW5nT2ZHcmlkVmlldx8PBQE5HxJoHxECgBBkZAItDw8WBh8OBRBQYWdpbmdPZkdyaWRWaWV3Hw8FATEfCWhkZAIJDzwrABEDAA8WCB8GBQpUQkxfT1JESU5GHwdnHwgCCB8JZ2QBEBYAFgAWAAwUKwAAFgJmD2QWFAIBD2QWBGYPZBYCAgEPDxYCHw0FATFkZAIBD2QWAgIBDw8WBB8PBQEwHghUYWJJbmRleAFkAGRkAgIPZBYEZg9kFgICAQ8PFgIfDQUBMmRkAgEPZBYCAgEPDxYEHw8FATEfEwFlAGRkAgMPZBYEZg9kFgICAQ8PFgIfDQUBM2RkAgEPZBYCAgEPDxYEHw8FATIfEwFmAGRkAgQPZBYEZg9kFgICAQ8PFgIfDQUBNGRkAgEPZBYCAgEPDxYEHw8FATMfEwFnAGRkAgUPZBYEZg9kFgICAQ8PFgIfDQUBNWRkAgEPZBYCAgEPDxYEHw8FATQfEwFoAGRkAgYPZBYEZg9kFgICAQ8PFgIfDQUBNmRkAgEPZBYCAgEPDxYEHw8FATUfEwFpAGRkAgcPZBYEZg9kFgICAQ8PFgIfDQUBN2RkAgEPZBYCAgEPDxYEHw8FATYfEwFqAGRkAggPZBYEZg9kFgICAQ8PFgIfDQUBOGRkAgEPZBYCAgEPDxYEHw8FATcfEwFrAGRkAgkPDxYCHwloZGQCCg8PFgIfCWhkZBgCBSNjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJEdyaWRWaWV3MQ88KwAMAQgCAWQFI2N0bDAwJENvbnRlbnRQbGFjZUhvbGRlcjEkRm9ybVZpZXcxDxQrAAdkZGRkZBYAAgFkuwDKqtC/yth0BiR9wcu/c6rzex8=">
+                    </div>
+
+                    <script type="text/javascript">
+                        //<![CDATA[
+                        var theForm = document.forms['aspnetForm'];
+                        if (!theForm) {
+                            theForm = document.aspnetForm;
+                        }
+                        function __doPostBack(eventTarget, eventArgument) {
+                            if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+                                theForm.__EVENTTARGET.value = eventTarget;
+                                theForm.__EVENTARGUMENT.value = eventArgument;
+                                theForm.submit();
+                            }
+                        }
+                        //]]>
+                    </script>
+
+
+                    <script
+                        src="/smcl/WebResource.axd?d=dORlJKDYU7ff7yOc9i_UsE_Jps6QnnXQ7j0I2y1u828OqbnYPjpyjNm37r_1ip26CRnPY9lX65dVsltt0&amp;t=637353302110221559"
+                        type="text/javascript"></script>
+
+
+                    <script
+                        src="/smcl/WebResource.axd?d=oa1xHnR8lGa3phyXw5Fqu1OEXdn-k1fuucRRCb5wps0Oa0_SmvOOufBXJ5lL1VDt-FvHIO6m31qgtqiM0&amp;t=637353302110221559"
+                        type="text/javascript"></script>
+                    <div>
+
+                        <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="9007E053">
+                        <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION"
+                            value="/wEdAEqZDrOJTE3gSuyidoAaNJZpXdYisoXBI6iOR4oX8Qjh+SfUOdO84mbW3IBvUJoB/mQtKgX+4hf8u03U1BdTxZT97hHibuzVrzgxzfXdiqL5IS0IwOOzjZDo51tNtXDkjjBoYNFF+lsU5+ZNyGzqiy6RwyAIfusYN+1ZFSwxqbYm1uJBq+SuxlsqR+KymNSrPRHdHnp3Myq+P3uJa0uHUwiOkOXWlsvGGFvFkXvmw9fANH1/QQX7qcM98GCHE+06hjlnSpjy99SIMvReroYb7zUbHKOwCz4d+WaSOHJvT8V9pMqYyOPjarSAdDMUUke8zBHJMLNlSKaet6Yp6a+5MbKu68vbjEulOomG25e0wKv4nD2WKUcGdpOwZVN4RjOSbZ2rwNUOfO2wJqJBuG6eu2ivBj+zKfiFPzIdz6Ha5ECDHXBTAnzf5BsfmhsdG+tiE2ffgSaHTi0eicJVG224cDXClQa7OVJM67692Tl5DpUqgpocKw7KeszAXhWtLakPlNBPi+3pyk3xbIKlq2+0+EW0m9dqWmy+y8c76ZHwnIN/8jxU04Zako8Bzdww5FxUt7tP6lyhNc0cN9s+xHeHPmeaN9EeXs0ZVoPbAkCjtG216GJ86SaghqO27xkD1PWClQitbgQDMvQlI/mXNjopDMsIv16XorvahSAm74MY3ckLqOufr3B2b8Sap2RX2TFkAzdQom0eVq43GdVW2076HqRlmZeXzvkzAXOB3rFfTznT2EAsxamZgmyCgTV0WT6R05TMAatwfsMEfELaGUJgNTF6uTiMpZCNFbf/5KCxAcepqZ/YR/lJ812gxY2lx5zDPsdGY+WHpLdkohgI36gYlE4lKiNq84QsgFi3h8NZZ0uA1JCcbuqy4gLeIZZSmclrDAKxoykAE4hu/9EjIqoFA4yL8pLVIqJNlgqtjFCIf60YJFcP3Cm5RBDROmr5HDzASZ85OLRiRN8iUeixe9xiSJ/X5ixT9ZUHtlo907/JL9zZcpHJtUx9OBh2YX+kB/darjizFPgxwzIVncduL7IVCyNotZq90ojOb5bXT7cp5/XIxvjluZ3ZvN3G15Mat9WpXlbhzPd+r6el66MGGk424YuN2rFdLDc/1mDyb981Q2G+XLhgR6M4q6gPEWcu4TW9eQx4qoq1agG1HWFMdr3lVvSgYJ9nkm4KEXMQXWSM2XQ6AhNhU22sDxC+RTaq4SehVi2ie6Lvw1T8L27kvMvvFg/c95VIMm5MLz/ncO2M6fU/kuMtNDzQqGIzUBKK4bRF0UPgnonhGC/zL4XcJqUkHp/GFCN5O9HuOUZlUbkG8O1kV9lhS4OGofddFWLeDmjyEVCe7o0hS4FKebOmGlXgv44MSbRrxrnjXA/8VAbChO5w3H4C+CC+ygokPGDFGU4owgaJpMHFgaWFzq+csaT5kaZP7YxOE47RTBgKMn/DeyVNQquXsbgEd1JAMCoCl+nJsdo6TGdhTp8ajWG7OEj5tky7JoUcZiqWanfwLIIyPxJ5LDgd3NtGhzElMhfZ6a89DL9TQjyC1IZ0F8pSceLpm+zRTZApgOEM9AHsnVuUgsfXJmiJhfIYUBUXgumSZAhsJ5gk+H+f">
+                    </div>
+                    <input type="hidden" name="ctl00$browserBackCheck" id="ctl00_browserBackCheck"
+                        value="6AF0F871D75F55D156A3">
+                    <input type="hidden" name="ctl00$LogoutProcess" id="ctl00_LogoutProcess" value="0">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td class="logoArea">
+                                    <img id="ctl00_logo" src="../../image/I26S_logo.jpg" style="border-width:0px;">
+                                </td>
+                                <td style="width:600px">
+
+                                    <!--ユーザー情報のレイアウト用Table Start-->
+                                    <table class="tbl1" style="float:left">
+                                        <tbody>
+                                            <tr>
+                                                <td class="FontType3 bgGrad4 fcBL1">
+                                                    ログインID
+                                                </td>
+                                                <td class="bgcBL4 border1">
+                                                    <span id="ctl00_LoginId">0600200</span>
+                                                </td>
+                                                <td class="FontType3 bgGrad4 fcBL1">
+                                                    ログイン名
+                                                </td>
+                                                <td class="bgcBL4 border1">
+                                                    <span id="ctl00_LoginName">築地魚市場株式会社</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="FontType3 bgGrad4 fcBL1">
+                                                    ユーザーID
+                                                </td>
+                                                <td class="bgcBL4 border1">
+                                                    <span id="ctl00_UserId">000000</span>
+                                                </td>
+                                                <td class="FontType3 bgGrad4 fcBL1">
+                                                    ユーザー名
+                                                </td>
+                                                <td class="bgcBL4 border1">
+                                                    <span id="ctl00_UserName">管理者</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <!--ユーザー情報のレイアウト用Table Start-->
+                                </td>
+                                <td style="float:right">
+                                </td>
+                                <td>
+                                    <span class="btn1 bgcOR1">
+                                        <a onclick="return ConfirmDestroyInput('ctl00_HiddenHelpLinkButton');"
+                                            id="ctl00_HelpLinkButton" tabindex="-1"
+                                            href="javascript:__doPostBack('ctl00$HelpLinkButton','')">ヘルプ</a>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="btn1 bgcOR1">
+                                        <a onclick="resetIsSubmitted();document.getElementById('ctl00_LogoutProcess').value='1';return ConfirmDestroyInput('ctl00_HiddenLogoutLinkButton');"
+                                            id="ctl00_LogoutLinkButton" tabindex="-1"
+                                            href="javascript:__doPostBack('ctl00$LogoutLinkButton','')">ログアウト</a>
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <img id="ctl00_Image2" src="../../image/scmlpbslogo.jpg" style="border-width:0px;">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="tbl0" style="width:100%;">
+                        <tbody>
+                            <tr style="height:8px"></tr>
+                            <tr>
+                                <td nowrap="">
+                                    <div>
+                                        <!--タブをセンタリングするために、全部のタブを一塊にしないとうまくいかなかったため、幅指定のdivでくくっている。-->
+                                        <div id="ctl00_tab1" class="baseTabNoSelected">
+                                            <a onclick="return ConfirmDestroyInput('ctl00_HiddenTablink', 'ctl00_execParameter', '1');"
+                                                id="ctl00_tab1link" tabindex="-1"
+                                                href="javascript:__doPostBack('ctl00$tab1link','')">ＴＯＰ</a>
+                                        </div>
+                                        <div id="ctl00_tab21" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab31" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab2" class="baseTabNoSelected">
+                                            <a onclick="return ConfirmDestroyInput('ctl00_HiddenTablink', 'ctl00_execParameter', '2');"
+                                                id="ctl00_tab2link" tabindex="-1"
+                                                href="javascript:__doPostBack('ctl00$tab2link','')">連絡事項</a>
+                                        </div>
+                                        <div id="ctl00_tab15" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab10" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab3" class="baseTabSelected">
+                                            <a onclick="return ConfirmDestroyInput('ctl00_HiddenTablink', 'ctl00_execParameter', '3');"
+                                                id="ctl00_tab3link" tabindex="-1"
+                                                href="javascript:__doPostBack('ctl00$tab3link','')">受注・出荷</a>
+                                        </div>
+                                        <div id="ctl00_tab11" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab4" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab5" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab6" class="baseTabNoSelected">
+                                            <a onclick="return ConfirmDestroyInput('ctl00_HiddenTablink', 'ctl00_execParameter', '6');"
+                                                id="ctl00_tab6link" tabindex="-1"
+                                                href="javascript:__doPostBack('ctl00$tab6link','')">受領・返品</a>
+                                        </div>
+                                        <div id="ctl00_tab7" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab12" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab8" class="baseTabNoSelected">
+                                            <a onclick="return ConfirmDestroyInput('ctl00_HiddenTablink', 'ctl00_execParameter', '8');"
+                                                id="ctl00_tab8link" tabindex="-1"
+                                                href="javascript:__doPostBack('ctl00$tab8link','')">支払</a>
+                                        </div>
+                                        <div id="ctl00_tab13" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab14" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab16" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab9" class="baseTabNoSelected">
+                                            <a onclick="return ConfirmDestroyInput('ctl00_HiddenTablink', 'ctl00_execParameter', '9');"
+                                                id="ctl00_tab9link" tabindex="-1"
+                                                href="javascript:__doPostBack('ctl00$tab9link','')">ログイン管理</a>
+                                        </div>
+                                        <div id="ctl00_tab22" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab23" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab24" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab25" class="baseTabNoSelected">
+
+                                        </div>
+                                        <div id="ctl00_tab26" class="baseTabNoSelected">
+
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!--<tr>-->
+                            <!--<td class="baseLine">-->
+                            <!--</td>-->
+                            <!--</tr>-->
+                        </tbody>
+                    </table>
+                    <table class="bgGradTitle" style="width:100%;">
+                        <tbody>
+                            <tr>
+                                <td style="width:10px;">
+                                </td>
+                                <td>
+                                    <a onclick="return ConfirmDestroyInput('ctl00_HiddenEDS001VTOP0000');"
+                                        id="ctl00_EDS001VTOP0000" tabindex="-1" class="baseScreenUrlLink"
+                                        href="javascript:__doPostBack('ctl00$EDS001VTOP0000','')">ＴＯＰ</a><a
+                                        id="ctl00_HiddenEDS001VTOP0000" tabindex="-1"
+                                        href="javascript:__doPostBack('ctl00$HiddenEDS001VTOP0000','')"
+                                        style="display:none;">ＴＯＰ</a><span>　&gt;&gt;　</span><span>受注受信一覧</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table style="width:100%;">
+                        <tbody>
+                            <tr style="height:8px;"></tr>
+                            <tr>
+                                <td align="right">
+                                    <input type="submit" name="ctl00$BackButton" value="F1:前画面に戻る"
+                                        onclick="return ConfirmDestroyInput('ctl00_HiddenBackButton');"
+                                        id="ctl00_BackButton" tabindex="-1" class="button1"
+                                        formnovalidate="formnovalidate" style="width:115px">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <br>
+
+                    <input type="hidden" name="ctl00$DurtyFlag" id="ctl00_DurtyFlag" value="0">
+                    <div>
+
+
+                        <div class="bgGrad5">
+                            <p class="header3-2">受注受信一覧</p>
+                            <p class="header1 fcBL1" style="font-weight:bold">条件を設定して検索</p>
+
+                            <table cellspacing="0" border="0" id="ctl00_ContentPlaceHolder1_FormView1"
+                                style="border-collapse:collapse;">
+                                <tbody>
+                                    <tr>
+                                        <td colspan="2">
+                                            <table class="tbl2" style="width:920px">
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="FontType5 bgcBL1" style="width:49px">
+                                                            受信日
+                                                        </td>
+                                                        <td style="width:240px">
+                                                            <input
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$ImpDateFromTextBox"
+                                                                type="text" value="2025/08/23" maxlength="10" size="12"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_ImpDateFromTextBox"
+                                                                tabindex="1"
+                                                                class="listValueDateTxtBox datepicker input1 hasDatepicker"
+                                                                onblur="itemCheck(this, '', '/');"><img
+                                                                class="ui-datepicker-trigger"
+                                                                src="../../image/calendar.png" alt="カレンダー"
+                                                                title="カレンダー">
+                                                            ～
+                                                            <input
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$ImpDateToTextBox"
+                                                                type="text" maxlength="10" size="12"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_ImpDateToTextBox"
+                                                                tabindex="2"
+                                                                class="listValueDateTxtBox datepicker input1 hasDatepicker"
+                                                                onblur="itemCheck(this, '', '/');"><img
+                                                                class="ui-datepicker-trigger"
+                                                                src="../../image/calendar.png" alt="カレンダー"
+                                                                title="カレンダー">
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1" style="width:53px">
+                                                            取引先<br>コード
+                                                        </td>
+                                                        <td style="width:226px">
+                                                            <input
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$SellerCdTextBox"
+                                                                type="text" maxlength="13" size="15"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_SellerCdTextBox"
+                                                                tabindex="3" class="listValueAsciiTxtBox">
+                                                            <span
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_SellerCdRefLinkButton"
+                                                                class="btn3" onclick="OpenSellerSearch();">参照</span>
+                                                            <span
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_SellerNmLabel"></span>
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1" style="width:53px">
+                                                            納品日
+                                                        </td>
+                                                        <td colspan="3">
+                                                            <input
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$RcvDateFromTextBox"
+                                                                type="text" maxlength="10" size="12"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_RcvDateFromTextBox"
+                                                                tabindex="5"
+                                                                class="listValueDateTxtBox datepicker input1 hasDatepicker"
+                                                                onblur="itemCheck(this, '', '/');"><img
+                                                                class="ui-datepicker-trigger"
+                                                                src="../../image/calendar.png" alt="カレンダー"
+                                                                title="カレンダー">
+                                                            ～
+                                                            <input
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$RcvDateToTextBox"
+                                                                type="text" maxlength="10" size="12"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_RcvDateToTextBox"
+                                                                tabindex="6"
+                                                                class="listValueDateTxtBox datepicker input1 hasDatepicker"
+                                                                onblur="itemCheck(this, '', '/');"><img
+                                                                class="ui-datepicker-trigger"
+                                                                src="../../image/calendar.png" alt="カレンダー"
+                                                                title="カレンダー">
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="FontType5 bgcBL1">
+                                                            部門
+                                                        </td>
+                                                        <td>
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$MajorDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_MajorDropDownList"
+                                                                tabindex="7" class="selectbox1" style="width:230px;">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="001">001 鮮魚</option>
+                                                                <option value="003">003 マグロ</option>
+                                                                <option value="004">004 寿司</option>
+                                                                <option value="005">005 魚卵</option>
+                                                                <option value="006">006 鮭鱒</option>
+                                                                <option value="007">007 塩干</option>
+                                                                <option value="008">008 珍味</option>
+                                                                <option value="009">009 惣菜</option>
+                                                                <option value="010">010 資材</option>
+                                                                <option value="090">090 貯蔵品</option>
+
+                                                            </select>
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1">
+                                                            便
+                                                        </td>
+                                                        <td>
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$BinDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_BinDropDownList"
+                                                                tabindex="8" class="selectbox1">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="01">01 1便</option>
+                                                                <option value="02">02 2便</option>
+                                                                <option value="03">03 3便</option>
+
+                                                            </select>
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1">
+                                                            配送温度<br>区分
+                                                        </td>
+                                                        <td colspan="3">
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$TempDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_TempDropDownList"
+                                                                tabindex="9" class="selectbox1">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="01">01 常温</option>
+                                                                <option value="02">02 チルド</option>
+                                                                <option value="03">03 冷蔵</option>
+                                                                <option value="04">04 冷凍</option>
+                                                                <option value="05">05 超冷凍</option>
+
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="FontType5 bgcBL1">
+                                                            伝票<br>タイプ
+                                                        </td>
+                                                        <td>
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$StrDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_StrDropDownList"
+                                                                tabindex="10" class="selectbox1">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="01">Ｔ／Ａ型</option>
+                                                                <option value="02">集計表型</option>
+                                                                <option value="03">発注書型</option>
+
+                                                            </select>
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1">
+                                                            確定状況
+                                                        </td>
+                                                        <td>
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$DeciDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_DeciDropDownList"
+                                                                tabindex="11" class="selectbox1">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="0">未確定あり</option>
+                                                                <option value="1">確定済</option>
+
+                                                            </select>
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1">
+                                                            印刷状況
+                                                        </td>
+                                                        <td style="width:95px">
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$PrintDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_PrintDropDownList"
+                                                                tabindex="12" class="selectbox1">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="0">未印刷あり</option>
+                                                                <option value="1">印刷済</option>
+
+                                                            </select>
+                                                        </td>
+                                                        <td class="FontType5 bgcBL1" style="width:53px">
+                                                            参照状況
+                                                        </td>
+                                                        <td style="width:75px">
+                                                            <select
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$RefDropDownList"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_RefDropDownList"
+                                                                tabindex="13" class="selectbox1">
+                                                                <option selected="selected" value="">全て</option>
+                                                                <option value="0">未参照</option>
+                                                                <option value="1">参照済</option>
+
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="8" align="center">
+                                                            <input type="submit"
+                                                                name="ctl00$ContentPlaceHolder1$FormView1$Button1"
+                                                                value="F12:検索"
+                                                                id="ctl00_ContentPlaceHolder1_FormView1_Button1"
+                                                                tabindex="14" class="button1">
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <table style="width:920px;">
+                                <tbody>
+                                    <tr>
+                                        <td style="width:700px;">
+                                            <span>
+
+                                                <div style="height:15px; width:100%; float:left"></div>
+                                                <span class="bgcBL2" style="padding:5px 10px 5px 10px;">
+                                                    &lt;表示&gt; <span
+                                                        id="ctl00_ContentPlaceHolder1_GridPageInfo_DisplayCountFrom">1</span>
+                                                    ～
+                                                    <span
+                                                        id="ctl00_ContentPlaceHolder1_GridPageInfo_DisplayCountTo">8</span>
+                                                    件 / &lt;全体&gt; 
+                                                    <span
+                                                        id="ctl00_ContentPlaceHolder1_GridPageInfo_GridViewTotal">8</span>
+                                                    件
+                                                </span>
+                                                <div style="height:10px; width:100%; float:left"></div>
+
+                                            </span>
+                                            <span>
+
+                                                <span style="padding-left:20px">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                </span>
+
+                                            </span>
+                                        </td>
+                                        <td style="float:right; margin-top:5px">
+                                            <input type="submit" name="ctl00$ContentPlaceHolder1$DownloadButton"
+                                                value="F7:ダウンロード" id="ctl00_ContentPlaceHolder1_DownloadButton"
+                                                tabindex="20" class="button1" style="width:110px">
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div>
+                                <table class="tbl4-1" cellspacing="0" rules="all" border="1"
+                                    id="ctl00_ContentPlaceHolder1_GridView1" style="border-collapse:collapse;">
+                                    <tbody>
+                                        <tr>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:25px;">No.</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:110px;">受信日時</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:220px;">取引先</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:70px;">納品日</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:40px;">部門<br>コード</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:35px;">便</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:60px;">配送温度<br>区分</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:75px;">伝票タイプ</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:55px;">伝票<br>枚数</th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:60px;">未確定<br>伝票枚数
+                                            </th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:60px;">未印刷<br>伝票枚数
+                                            </th>
+                                            <th class="bgcBL1 FontType4" scope="col" style="width:110px;">参照状況</th>
+                                        </tr>
+                                        <tr>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl02_NoLabel">1</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl02_ImpDateLinkButton"
+                                                    tabindex="100"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl02$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl02_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl02_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl02_MajorLabel">001</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl02_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl02_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl02_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl02_SlipCntLabel">1枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl02_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl02_PrintCntLabel"
+                                                    class=" red-bold ">1枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl02_RefDateLabel">2025/08/23
+                                                    09:40</span>
+                                            </td>
+                                        </tr>
+                                        <tr style="background-color:#F8ECE7;">
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl03_NoLabel">2</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl03_ImpDateLinkButton"
+                                                    tabindex="101"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl03$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl03_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl03_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl03_MajorLabel">002</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl03_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl03_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl03_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl03_SlipCntLabel">16枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl03_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl03_PrintCntLabel"
+                                                    class=" red-bold ">16枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl03_RefDateLabel">2025/08/23
+                                                    09:41</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl04_NoLabel">3</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl04_ImpDateLinkButton"
+                                                    tabindex="102"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl04$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl04_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl04_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl04_MajorLabel">004</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl04_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl04_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl04_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl04_SlipCntLabel">4枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl04_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl04_PrintCntLabel"
+                                                    class=" red-bold ">4枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl04_RefDateLabel">2025/08/23
+                                                    09:41</span>
+                                            </td>
+                                        </tr>
+                                        <tr style="background-color:#F8ECE7;">
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl05_NoLabel">4</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl05_ImpDateLinkButton"
+                                                    tabindex="103"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl05$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl05_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl05_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl05_MajorLabel">006</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl05_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl05_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl05_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl05_SlipCntLabel">3枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl05_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl05_PrintCntLabel"
+                                                    class=" red-bold ">3枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl05_RefDateLabel">2025/08/23
+                                                    09:41</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl06_NoLabel">5</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl06_ImpDateLinkButton"
+                                                    tabindex="104"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl06$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl06_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl06_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl06_MajorLabel">007</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl06_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl06_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl06_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl06_SlipCntLabel">17枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl06_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl06_PrintCntLabel"
+                                                    class=" red-bold ">17枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl06_RefDateLabel">2025/08/23
+                                                    09:42</span>
+                                            </td>
+                                        </tr>
+                                        <tr style="background-color:#F8ECE7;">
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl07_NoLabel">6</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl07_ImpDateLinkButton"
+                                                    tabindex="105"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl07$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl07_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl07_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl07_MajorLabel">008</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl07_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl07_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl07_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl07_SlipCntLabel">1枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl07_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl07_PrintCntLabel"
+                                                    class=" red-bold ">1枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl07_RefDateLabel">2025/08/23
+                                                    09:42</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl08_NoLabel">7</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl08_ImpDateLinkButton"
+                                                    tabindex="106"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl08$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl08_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl08_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl08_MajorLabel">009</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl08_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl08_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl08_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl08_SlipCntLabel">16枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl08_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl08_PrintCntLabel"
+                                                    class=" red-bold ">16枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl08_RefDateLabel">2025/08/23
+                                                    09:42</span>
+                                            </td>
+                                        </tr>
+                                        <tr style="background-color:#F8ECE7;">
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl09_NoLabel">8</span>
+                                            </td>
+                                            <td class="listValueDate LinkStyle">
+                                                <a id="ctl00_ContentPlaceHolder1_GridView1_ctl09_ImpDateLinkButton"
+                                                    tabindex="107"
+                                                    href="javascript:__doPostBack('ctl00$ContentPlaceHolder1$GridView1$ctl09$ImpDateLinkButton','')">2025/08/23
+                                                    09:13</a>
+                                            </td>
+                                            <td class="listValueAscii">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl09_SellerLabel">0600219
+                                                    築地魚市場㈱１９</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl09_RcvDateLabel">2025/08/25</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl09_MajorLabel">010</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl09_BinLabel">1便</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl09_TempLabel"></span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl09_StrLabel">Ｔ／Ａ型</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl09_SlipCntLabel">1枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl09_DeciCntLabel">0枚</span>
+                                            </td>
+                                            <td class="listValueNumber">
+                                                <span id="ctl00_ContentPlaceHolder1_GridView1_ctl09_PrintCntLabel"
+                                                    class=" red-bold ">1枚</span>
+                                            </td>
+                                            <td class="listValueDate">
+                                                <span
+                                                    id="ctl00_ContentPlaceHolder1_GridView1_ctl09_RefDateLabel">2025/08/23
+                                                    09:43</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <input type="submit" name="ctl00$ContentPlaceHolder1$ChangeSellerButton" value=""
+                            id="ctl00_ContentPlaceHolder1_ChangeSellerButton" style="display: none;">
+                        <input name="ctl00$ContentPlaceHolder1$hidSellerCdFromSrc" type="hidden"
+                            id="ctl00_ContentPlaceHolder1_hidSellerCdFromSrc">
+                        <div style="height:10px; width:100%; float:left"></div>
+
+                    </div>
+
+                    <div style="height:5px; width:100%; float:left"></div>
+                    <table class="bgGradFooter" style="width:100%; height:18px;">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span id="ctl00_Copyright">Copyright (C) SCSK CORPORATION All Rights Reserved</span>
+                                </td>
+                                <td style="width:5px;">
+                                    <!--コピーライトが右により過ぎて、スクロールバーで隠れてしまうため、20ｐｘ分余白を設定。-->
+                                    <div style="width:10px;"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="height:5px; width:100%; float:left"></div>
+                    <input name="ctl00$SearchWinName" type="hidden" id="ctl00_SearchWinName">
+                    <input name="ctl00$hidArryText" type="hidden" id="ctl00_hidArryText">
+                    <input name="ctl00$changeFlg" type="hidden" id="ctl00_changeFlg">
+                    <input name="ctl00$execParameter" type="hidden" id="ctl00_execParameter">
+
+                    <input type="submit" name="ctl00$HiddenBackButton" value="" id="ctl00_HiddenBackButton"
+                        style="display: none;">
+
+                    <a id="ctl00_HiddenLogoutLinkButton"
+                        href="javascript:__doPostBack('ctl00$HiddenLogoutLinkButton','')" style="display: none;"></a>
+                    <a id="ctl00_HiddenHelpLinkButton" href="javascript:__doPostBack('ctl00$HiddenHelpLinkButton','')"
+                        style="display: none;"></a>
+                    <a id="ctl00_HiddenTablink" href="javascript:__doPostBack('ctl00$HiddenTablink','')"
+                        style="display: none;"></a>
+
+
+                    <script type="text/javascript">
+                        //<![CDATA[
+                        WebForm_AutoFocus('ctl00_ContentPlaceHolder1_FormView1_ImpDateFromTextBox');//]]>
+                    </script>
+                    <script type="text/javascript">
+                        function F1_Click() {
+                            var o = document.getElementById('ctl00_BackButton');
+                            if (o) {
+                                o.click();
+                            }
+                        }
+                    </script>
+                    <script type="text/javascript">
+                        var target = new Array();
+                        var currentForcusIndex = 1;
+                    </script>
+                    <script type="text/javascript">
+                        target[1] = 'ctl00_ContentPlaceHolder1_FormView1_ImpDateFromTextBox';
+                    </script>
+                    <script type="text/javascript">
+                        target[2] = 'ctl00_ContentPlaceHolder1_FormView1_ImpDateToTextBox';
+                    </script>
+                    <script type="text/javascript">
+                        target[3] = 'ctl00_ContentPlaceHolder1_FormView1_SellerCdTextBox';
+                    </script>
+                    <script type="text/javascript">
+                        target[5] = 'ctl00_ContentPlaceHolder1_FormView1_RcvDateFromTextBox';
+                    </script>
+                    <script type="text/javascript">
+                        target[6] = 'ctl00_ContentPlaceHolder1_FormView1_RcvDateToTextBox';
+                    </script>
+                    <script type="text/javascript">
+                        target[7] = 'ctl00_ContentPlaceHolder1_FormView1_MajorDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        target[8] = 'ctl00_ContentPlaceHolder1_FormView1_BinDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        target[9] = 'ctl00_ContentPlaceHolder1_FormView1_TempDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        target[10] = 'ctl00_ContentPlaceHolder1_FormView1_StrDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        target[11] = 'ctl00_ContentPlaceHolder1_FormView1_DeciDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        target[12] = 'ctl00_ContentPlaceHolder1_FormView1_PrintDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        target[13] = 'ctl00_ContentPlaceHolder1_FormView1_RefDropDownList';
+                    </script>
+                    <script type="text/javascript">
+                        function F12_Click() {
+                            var o = document.getElementById('ctl00_ContentPlaceHolder1_FormView1_Button1');
+                            if (o) {
+                                o.click();
+                            }
+                        }
+                    </script>
+                    <script type="text/javascript">
+                        target[14] = 'ctl00_ContentPlaceHolder1_FormView1_Button1';
+                    </script>
+                    <script type="text/javascript">
+                        function F7_Click() {
+                            var o = document.getElementById('ctl00_ContentPlaceHolder1_DownloadButton');
+                            if (o) {
+                                o.click();
+                            }
+                        }
+                    </script>
+                    <script type="text/javascript">
+                        target[20] = 'ctl00_ContentPlaceHolder1_DownloadButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[100] = 'ctl00_ContentPlaceHolder1_GridView1_ctl02_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[101] = 'ctl00_ContentPlaceHolder1_GridView1_ctl03_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[102] = 'ctl00_ContentPlaceHolder1_GridView1_ctl04_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[103] = 'ctl00_ContentPlaceHolder1_GridView1_ctl05_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[104] = 'ctl00_ContentPlaceHolder1_GridView1_ctl06_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[105] = 'ctl00_ContentPlaceHolder1_GridView1_ctl07_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[106] = 'ctl00_ContentPlaceHolder1_GridView1_ctl08_ImpDateLinkButton';
+                    </script>
+                    <script type="text/javascript">
+                        target[107] = 'ctl00_ContentPlaceHolder1_GridView1_ctl09_ImpDateLinkButton';
+                    </script>
+                </form>
+            </div>
+        </div>
+
+
+    </div>
+    <div id="msgDlg" style="display:none" title="Webページからのメッセージ">
+        Alert,confirmの代わりのダイアログ（メッセージ内容は関数の引数で指定）。
+    </div>
+
+
+    <div id="ui-datepicker-div" class="ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all">
+        <div class="ui-datepicker-header ui-widget-header ui-helper-clearfix ui-corner-all"><a
+                class="ui-datepicker-prev ui-corner-all" data-handler="prev" data-event="click" title="&lt;前"><span
+                    class="ui-icon ui-icon-circle-triangle-w">&lt;前</span></a><a
+                class="ui-datepicker-next ui-corner-all" data-handler="next" data-event="click" title="次&gt;"><span
+                    class="ui-icon ui-icon-circle-triangle-e">次&gt;</span></a>
+            <div class="ui-datepicker-title"><span class="ui-datepicker-year">2025</span>年&nbsp;<span
+                    class="ui-datepicker-month">8月</span></div>
+        </div>
+        <table class="ui-datepicker-calendar">
+            <thead>
+                <tr>
+                    <th class="ui-datepicker-week-end"><span title="日曜日">日</span></th>
+                    <th><span title="月曜日">月</span></th>
+                    <th><span title="火曜日">火</span></th>
+                    <th><span title="水曜日">水</span></th>
+                    <th><span title="木曜日">木</span></th>
+                    <th><span title="金曜日">金</span></th>
+                    <th class="ui-datepicker-week-end"><span title="土曜日">土</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td
+                        class=" ui-datepicker-week-end ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">
+                        &nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">1</a></td>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">2</a></td>
+                </tr>
+                <tr>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">3</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">4</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">5</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">6</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">7</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">8</a></td>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">9</a></td>
+                </tr>
+                <tr>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">10</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">11</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">12</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">13</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">14</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">15</a></td>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">16</a></td>
+                </tr>
+                <tr>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">17</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">18</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">19</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">20</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">21</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">22</a></td>
+                    <td class=" ui-datepicker-week-end  ui-datepicker-current-day" data-handler="selectDay"
+                        data-event="click" data-month="7" data-year="2025"><a class="ui-state-default ui-state-active"
+                            href="#">23</a></td>
+                </tr>
+                <tr>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">24</a></td>
+                    <td class="  ui-datepicker-today" data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default ui-state-highlight" href="#">25</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">26</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">27</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">28</a></td>
+                    <td class=" " data-handler="selectDay" data-event="click" data-month="7" data-year="2025"><a
+                            class="ui-state-default" href="#">29</a></td>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">30</a></td>
+                </tr>
+                <tr>
+                    <td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="7"
+                        data-year="2025"><a class="ui-state-default" href="#">31</a></td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td>
+                    <td
+                        class=" ui-datepicker-week-end ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">
+                        &nbsp;</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="ui-datepicker-buttonpane ui-widget-content"><button type="button"
+                class="ui-datepicker-current ui-state-default ui-priority-secondary ui-corner-all" data-handler="today"
+                data-event="click">今日</button><button type="button"
+                class="ui-datepicker-close ui-state-default ui-priority-primary ui-corner-all" data-handler="hide"
+                data-event="click">閉じる</button></div>
+    </div>
+</body>
+
+</html>

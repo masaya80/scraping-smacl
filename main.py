@@ -39,20 +39,44 @@ class DeliveryListProcessor:
         self.logger = Logger(__name__)
         self.scraper = None
         self.csv_extractor = CSVExtractor()
-        self.excel_processor = ExcelProcessor()
+        self.excel_processor = ExcelProcessor(self.config)
         self.pdf_image_processor = PDFImageProcessor(self.config)
         self.line_notifier = LineBotNotifier()
+        
+        # 日付別ディレクトリを設定
+        self.today_str = datetime.now().strftime(self.config.date_folder_format)
+        self.dated_output_dir = self.config.get_dated_output_dir(self.today_str)
+        self.dated_download_dir = self.config.get_dated_download_dir(self.today_str)
+        self.dated_logs_dir = self.config.get_dated_logs_dir(self.today_str)
         
     def run(self):
         """メイン処理を実行"""
         try:
             self.logger.info("=== 納品リスト処理システム開始 ===")
+            self.logger.info(f"処理日: {self.today_str}")
+            self.logger.info(f"出力先: {self.dated_output_dir}")
+            
+            # ネットワークドライブの状態確認
+            network_status = self.config.get_network_status()
+            if network_status["use_network_storage"]:
+                if network_status["accessible"]:
+                    self.logger.info(f"ネットワークドライブ接続OK: {network_status['network_path']}")
+                else:
+                    self.logger.warning(f"ネットワークドライブ接続NG: {network_status.get('error', '不明なエラー')}")
+                    self.logger.info("ローカルフォルダを使用します")
+            
             start_time = datetime.now()
             
             # # フェーズ1: スマクラログインと納品リストダウンロード
-            # if not self._phase1_scraping():
-            #     self.logger.error("フェーズ1: スクレイピング処理が失敗しました")
-            #     return False
+            if not self._phase1_scraping():
+                 self.logger.error("フェーズ1: スクレイピング処理が失敗しました")
+                 return False
+            
+            # データなしの場合の専用処理
+            if hasattr(self.scraper, 'no_data_found') and self.scraper.no_data_found:
+                self.logger.info("📭 該当するデータがありません - 専用通知を送信します")
+                self._send_no_data_notification()
+                return True  # 処理は成功（データがないだけ）
                 
             # フェーズ2: CSVデータ抽出
             extracted_data = self._phase2_data_extraction()
@@ -97,7 +121,7 @@ class DeliveryListProcessor:
             self.logger.info("フェーズ1: スクレイピング処理開始")
             
             self.scraper = SMCLScraper(
-                download_dir=self.config.download_dir,
+                download_dir=self.dated_download_dir,
                 headless=self.config.headless_mode,
                 config=self.config
             )
@@ -115,7 +139,7 @@ class DeliveryListProcessor:
             self.logger.info("フェーズ2: CSVデータ抽出処理開始")
             
             # 今日の日付のCSVファイルを取得
-            csv_file = self.csv_extractor.find_today_csv_file(Path(self.config.download_dir))
+            csv_file = self.csv_extractor.find_today_csv_file(self.dated_download_dir)
         
             if not csv_file:
                 self.logger.error("CSVファイルが見つかりませんでした")
@@ -205,7 +229,7 @@ class DeliveryListProcessor:
                 self.logger.info(f"  - {pdf_file.name}")
             
             # 画像出力ディレクトリを設定
-            output_dir = Path(self.config.output_dir)
+            output_dir = self.dated_output_dir
             
             # PDF画像変換を実行
             converted_images = self.pdf_image_processor.process_all_pdfs(all_pdf_files, output_dir)
@@ -229,9 +253,9 @@ class DeliveryListProcessor:
             return {}
     
     def _phase6_notification(self, validated_data, error_data, converted_images):
-        """フェーズ6: LineBot通知（簡素化版）"""
+        """フェーズ6: LineBot通知（統合版）"""
         try:
-            self.logger.info("フェーズ6: 通知処理開始")
+            self.logger.info("フェーズ6: 統合通知処理開始")
             
             # 生成されたファイルを取得
             excel_files = self._get_generated_excel_files()
@@ -255,33 +279,29 @@ class DeliveryListProcessor:
                 "画像変換失敗数": image_summary.get("失敗PDFファイル数", 0)
             }
             
-            # LINE通知を送信
-            self.line_notifier.send_process_summary(summary)
+            # 統合されたビジネス向け通知を送信
+            self.line_notifier.send_integrated_completion_notification(
+                summary=summary,
+                error_data=error_data,
+                converted_images=converted_images,
+                max_images=5,  # 重要な画像（出庫依頼書・配車表）を最大5枚まで送信
+                send_all_delivery_lists=True  # 全ての納品リスト画像を送信
+            )
             
-            # エラーがある場合は詳細通知
-            if error_data:
+            # 重要なエラーがある場合のみ詳細通知を追加送信
+            if error_data and len(error_data) > 5:
+                self.logger.info("多数のエラーが発生したため詳細通知を送信")
                 self.line_notifier.send_error_details(error_data)
-            
-            # 変換された画像を送信
-            if converted_images:
-                self.logger.info("変換済み画像送信開始")
-                self.line_notifier.send_converted_images(converted_images)
-            else:
-                self.logger.warning("送信する画像がありません")
                 
         except Exception as e:
             self.logger.error(f"フェーズ6でエラー: {str(e)}")
     
     def _get_downloaded_pdf_files(self):
         """今日ダウンロードされたPDFファイルのリストを取得"""
-        download_dir = Path(self.config.download_dir)
-        today_str = datetime.now().strftime('%Y%m%d')
-        
-        # 今日の日付を含むPDFファイルのみを取得
+        # 日付別ダウンロードディレクトリから取得
         today_files = []
-        for pdf_file in download_dir.glob("*.pdf"):
-            if today_str in pdf_file.name:
-                today_files.append(pdf_file)
+        for pdf_file in self.dated_download_dir.glob("*.pdf"):
+            today_files.append(pdf_file)
         
         # ファイル名で並び替え（最新順）
         today_files.sort(key=lambda x: x.name, reverse=True)
@@ -291,14 +311,10 @@ class DeliveryListProcessor:
     
     def _get_generated_excel_files(self):
         """今日生成されたExcelファイルのリストを取得"""
-        output_dir = Path(self.config.output_dir)
-        today_str = datetime.now().strftime('%Y%m%d')
-        
-        # 今日の日付を含むExcelファイルのみを取得
+        # 日付別出力ディレクトリから取得
         today_files = []
-        for excel_file in output_dir.glob("*.xlsx"):
-            if today_str in excel_file.name:
-                today_files.append(excel_file)
+        for excel_file in self.dated_output_dir.glob("*.xlsx"):
+            today_files.append(excel_file)
         
         # ファイル名で並び替え（最新順）
         today_files.sort(key=lambda x: x.name, reverse=True)
@@ -308,14 +324,10 @@ class DeliveryListProcessor:
     
     def _get_generated_pdf_files(self):
         """今日生成されたPDFファイルのリストを取得（最新の出庫依頼書と配車表のみ）"""
-        output_dir = Path(self.config.output_dir)
-        today_str = datetime.now().strftime('%Y%m%d')
-        
-        # 今日の日付を含むPDFファイルのみを取得
+        # 日付別出力ディレクトリから取得
         today_files = []
-        for pdf_file in output_dir.glob("*.pdf"):
-            if today_str in pdf_file.name:
-                today_files.append(pdf_file)
+        for pdf_file in self.dated_output_dir.glob("*.pdf"):
+            today_files.append(pdf_file)
         
         # ファイル名で並び替え（最新順）
         today_files.sort(key=lambda x: x.name, reverse=True)
@@ -344,6 +356,33 @@ class DeliveryListProcessor:
             self.logger.info(f"  - {pdf_file.name}")
         
         return filtered_files
+    
+    def _send_no_data_notification(self):
+        """データなし時の専用LINE通知"""
+        try:
+            self.logger.info("📭 データなし通知処理開始")
+            
+            from datetime import datetime
+            from services.notification.line_bot import LineBotNotifier
+            
+            # LineBotNotifier初期化
+            line_bot = LineBotNotifier()
+            
+            # 今日の日付取得
+            today_str = datetime.today().strftime('%Y年%m月%d日')
+            
+            # 専用メッセージ作成
+            message = f"📭 受注データ確認結果\n\n{today_str}の受注データが見つかりませんでした。"
+            
+            # LINE通知送信
+            self.logger.info(f"LINE通知送信: {message}")
+            line_bot.send_message(message)
+            
+            self.logger.info("✅ データなし通知を送信しました")
+            
+        except Exception as e:
+            self.logger.error(f"データなし通知送信エラー: {str(e)}")
+            self.logger.exception(e)
     
     def _cleanup(self):
         """リソースのクリーンアップ"""

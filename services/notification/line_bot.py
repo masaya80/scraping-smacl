@@ -988,3 +988,181 @@ class LineBotNotifier:
         except Exception as e:
             self.logger.error(f"変換済み画像送信エラー: {str(e)}")
             return False
+    
+    def send_integrated_completion_notification(
+        self,
+        summary: Dict[str, Any],
+        error_data: List = None,
+        converted_images: Dict[str, List[Path]] = None,
+        max_images: int = 3,
+        send_all_delivery_lists: bool = True
+    ) -> bool:
+        """
+        統合された処理完了通知を送信（ビジネス向け）
+        
+        Args:
+            summary: 処理結果のサマリー
+            error_data: エラーデータのリスト
+            converted_images: 変換済み画像の辞書
+            max_images: 最大送信画像数
+        
+        Returns:
+            送信成功可否
+        """
+        if not self.enabled:
+            self.logger.warning("LINE Bot が無効のため、統合通知をスキップしました")
+            return False
+        
+        try:
+            self.logger.info("統合完了通知の送信開始")
+            
+            # メイン通知メッセージを送信
+            main_message = self._build_integrated_message(summary, error_data)
+            self.send_message(main_message)
+            
+            # 重要なPDF画像のみを送信（ビジネス側に必要最小限）
+            if converted_images:
+                self._send_business_relevant_images(converted_images, max_images, send_all_delivery_lists)
+            
+            self.logger.info("統合完了通知の送信完了")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"統合完了通知送信エラー: {str(e)}")
+            return False
+    
+    def _build_integrated_message(self, summary: Dict[str, Any], error_data: List = None) -> str:
+        """統合されたビジネス向けメッセージを構築"""
+        try:
+            lines = [
+                "✅ SMCL 納品リスト処理完了",
+                "",
+                f"🕐 処理日時: {summary.get('処理日時', '不明')}",
+                ""
+            ]
+            
+            # エラーの有無のみを表示（詳細な数値は削除）
+            error_count = summary.get('エラーデータ件数', 0)
+            
+            if error_count == 0:
+                lines.extend([
+                    "🎉 すべて正常に処理されました！"
+                ])
+            else:
+                lines.extend([
+                    "⚠️ 一部エラーがあります。詳細確認が必要です。"
+                ])
+            
+            # 画像がある場合のみ画像表示の案内を追加
+            total_images = summary.get('総画像数', 0)
+            
+            return "\n".join(lines)
+            
+        except Exception as e:
+            self.logger.error(f"統合メッセージ構築エラー: {str(e)}")
+            return "処理完了通知でエラーが発生しました"
+    
+    def _send_business_relevant_images(self, converted_images: Dict[str, List[Path]], max_images: int, send_all_delivery_lists: bool = True) -> bool:
+        """
+        ビジネス側に関連する重要な画像のみを送信
+        
+        Args:
+            converted_images: 変換済み画像の辞書
+            max_images: 最大送信画像数
+            send_all_delivery_lists: 全ての納品リスト画像を送信するか
+        
+        Returns:
+            送信成功可否
+        """
+        try:
+            if not converted_images:
+                return True
+            
+            # ビジネス側に重要なPDFファイルを優先順位付けして選択
+            priority_files = []
+            
+            # 1. 出庫依頼書（最も重要）
+            for pdf_name, image_paths in converted_images.items():
+                if "出庫依頼" in pdf_name and image_paths:
+                    priority_files.extend([(pdf_name, path, 1) for path in image_paths[:2]])  # 最大2ページ
+            
+            # 2. 配車表・アリスト
+            for pdf_name, image_paths in converted_images.items():
+                if ("アリスト" in pdf_name or "配車" in pdf_name or "LT" in pdf_name) and image_paths:
+                    priority_files.extend([(pdf_name, path, 2) for path in image_paths[:1]])  # 最大1ページ
+                    
+            # 3. 納品リスト（参考用）
+            for pdf_name, image_paths in converted_images.items():
+                if "納品リスト" in pdf_name and image_paths:
+                    if send_all_delivery_lists:
+                        # 全ての納品リスト画像を送信
+                        priority_files.extend([(pdf_name, path, 3) for path in image_paths])
+                        self.logger.info(f"納品リスト全画像追加: {pdf_name} ({len(image_paths)}枚)")
+                    else:
+                        # 従来通り最大1ページ
+                        priority_files.extend([(pdf_name, path, 3) for path in image_paths[:1]])  # 最大1ページ
+            
+            # 優先度でソートし、最大画像数まで制限
+            priority_files.sort(key=lambda x: x[2])
+            
+            if send_all_delivery_lists:
+                # 全ての納品リストを送信する場合
+                # 優先度1,2（出庫依頼書、配車表）を優先選択
+                high_priority_files = [f for f in priority_files if f[2] <= 2]
+                delivery_list_files = [f for f in priority_files if f[2] == 3]  # 納品リスト
+                
+                # 高優先度ファイルを制限内で選択
+                selected_high_priority = high_priority_files[:max_images]
+                
+                # 残りの枠で納品リストを追加（制限なし）
+                selected_files = selected_high_priority + delivery_list_files
+                
+                self.logger.info(f"高優先度画像: {len(selected_high_priority)}枚, 納品リスト: {len(delivery_list_files)}枚")
+            else:
+                # 従来通りの制限
+                selected_files = priority_files[:max_images]
+            
+            if not selected_files:
+                self.logger.info("送信する重要画像が見つかりませんでした")
+                return True
+            
+            # 選択された重要画像を送信
+            success_count = 0
+            for pdf_name, image_path, priority in selected_files:
+                try:
+                    # 画像が存在するか確認
+                    if not image_path.exists():
+                        self.logger.warning(f"画像ファイルが見つかりません: {image_path}")
+                        continue
+                    
+                    # ファイルタイプに応じたタイトルを設定
+                    if "出庫依頼" in pdf_name:
+                        title = "📄 出庫依頼書"
+                    elif any(keyword in pdf_name for keyword in ["アリスト", "配車", "LT"]):
+                        title = "🚛 配車表"
+                    elif "納品リスト" in pdf_name:
+                        title = "📋 納品リスト"
+                    else:
+                        title = "📄 生成ファイル"
+                    
+                    # 画像を送信
+                    success = self._send_image_via_cloud_storage(
+                        image_path,
+                        title
+                    )
+                    
+                    if success:
+                        success_count += 1
+                        self.logger.info(f"重要画像送信成功: {image_path.name}")
+                    else:
+                        self.logger.warning(f"重要画像送信失敗: {image_path.name}")
+                        
+                except Exception as e:
+                    self.logger.error(f"重要画像送信エラー ({image_path.name}): {str(e)}")
+            
+            self.logger.info(f"重要画像送信完了: {success_count}/{len(selected_files)} 成功")
+            return success_count > 0
+            
+        except Exception as e:
+            self.logger.error(f"ビジネス関連画像送信エラー: {str(e)}")
+            return False
